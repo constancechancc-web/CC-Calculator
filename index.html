@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#F9CADB">
+<link rel="icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Property Quotation Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+/* Constance CRM theme (light only, same as the CRM): gradient hero card, inputs panel left, quotation slip right; stacks on phones. */
+:root {
+  --page: #f8f6f4;
+  --card: #ffffff;
+  --ink: #25223a;
+  --text-2: #6f7680;
+  --text-3: #9aa1aa;
+  --line: #ece8f0;
+  --brand: #6f63c6;
+  --brand-ink: #3b3270;
+  --brand-soft: #efeafb;
+  --peach: #ffe3d3;
+  --peach-ink: #8a4320;
+  --rose: #fbe1ea;
+  --rose-ink: #8a2f52;
+  --on-brand: #ffffff;
+  --hero: linear-gradient(115deg, #ffd8c4 0%, #f9cadb 32%, #d9cdf6 64%, #c3e6f2 100%);
+  --font: "Urbanist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { background: var(--hero); border-radius: 22px; padding: 22px 22px 18px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 24px; margin-bottom: 20px; }
+h1 { font-weight: 700; font-size: clamp(24px, 4vw, 32px); letter-spacing: -0.01em; margin: 0; text-wrap: balance; color: var(--brand-ink); }
+.sub { color: var(--brand-ink); opacity: .8; margin: 4px 0 0; max-width: 60ch; font-weight: 500; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; background: rgba(255,255,255,.7); border: 1px solid rgba(255,255,255,.9); border-radius: 999px; padding: 4px; }
+.tabs button { font: 600 14px var(--font); border: 0; background: transparent; color: var(--brand-ink); padding: 8px 16px; border-radius: 999px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--brand); color: var(--on-brand); }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.grid { display: grid; grid-template-columns: minmax(0, 390px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 820px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: grid; gap: 14px; }
+.panel h2 { font: 700 12.5px var(--font); text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-2); margin: 0; }
+.fieldset { display: grid; gap: 12px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+label.f { display: grid; gap: 4px; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+label.f small { font-weight: 500; color: var(--text-3); }
+.inp { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 12px; background: var(--page); overflow: hidden; }
+.inp:focus-within { border-color: var(--brand); background: var(--card); }
+.inp span { font: 600 13px var(--font); color: var(--text-2); padding: 0 10px; white-space: nowrap; }
+.inp input, .inp select { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font: 600 15.5px var(--font); font-variant-numeric: tabular-nums; padding: 10px 10px; }
+.inp input:focus, .inp select:focus { outline: none; }
+.inp select { cursor: pointer; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--page); }
+.seg button { flex: 1; border: 0; background: transparent; color: var(--text-2); font: 600 13px var(--font); padding: 9px 8px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--brand); color: var(--on-brand); }
+.hint { font-size: 12.5px; color: var(--text-2); margin: 0; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 13.5px; color: var(--ink); font-weight: 500; }
+.check input { accent-color: var(--brand); width: 16px; height: 16px; }
+
+/* Quotation slip */
+.slip { background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 14px 34px -22px rgba(59, 50, 112, 0.35); overflow: hidden; }
+.slip-paper { background: var(--card); }
+.slip-band { height: 8px; background: var(--hero); }
+.slip-head { padding: 16px 20px 12px; border-bottom: 1px solid var(--line); display: grid; gap: 2px; }
+.slip-head .row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; align-items: baseline; }
+.slip-head h3 { font: 700 21px var(--font); margin: 0; color: var(--brand-ink); }
+.slip-head .meta { font: 500 13px var(--font); color: var(--text-2); }
+.slip-head .addr { font: 500 14px var(--font); color: var(--ink); }
+.slip-body { padding: 4px 20px 18px; }
+.sect { font: 700 11.5px var(--font); text-transform: uppercase; letter-spacing: 0.1em; color: var(--brand); margin: 16px 0 4px; }
+.li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; padding: 9px 0; border-bottom: 1px dashed var(--line); align-items: baseline; }
+.li .lbl { min-width: 0; }
+.li .lbl b { font-weight: 600; }
+.li .lbl .cn { display: block; font-size: 12.5px; color: var(--text-2); }
+.li .lbl .note { display: block; font-size: 12.5px; color: var(--text-2); }
+.amt { font: 600 15.5px var(--font); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.amt .pm { display: inline-block; margin-left: 6px; font-size: 11.5px; font-weight: 700; color: var(--peach-ink); background: var(--peach); padding: 1px 6px; border-radius: 6px; vertical-align: 1px; }
+.amt.neg { color: var(--rose-ink); }
+.amt.na { color: var(--rose-ink); font-size: 13px; white-space: normal; }
+.amt.txt { font-size: 13px; color: var(--text-2); font-weight: 500; }
+.total { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: baseline; margin-top: 14px; padding: 13px 16px; background: var(--brand-soft); color: var(--brand-ink); border-radius: 14px; }
+.total .lbl { font: 700 16px var(--font); }
+.total .amt { font-size: 20px; font-weight: 800; }
+.warnbox { margin-top: 12px; padding: 10px 12px; background: var(--rose); color: var(--rose-ink); border-radius: 12px; font-size: 13px; }
+.foot { font-size: 12px; color: var(--text-2); margin: 14px 0 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--line); background: var(--page); }
+.btn { font: 600 14px var(--font); border-radius: 999px; padding: 9px 16px; cursor: pointer; border: 1px solid var(--brand); background: var(--brand); color: var(--on-brand); }
+.btn.ghost { background: var(--card); color: var(--brand-ink); border-color: var(--line); }
+.btn:disabled { opacity: .55; cursor: progress; }
+.toast { font-size: 13px; color: var(--brand-ink); align-self: center; }
+textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+@media (max-width: 420px) { .row2 { grid-template-columns: 1fr; } .slip-body, .slip-head, .actions { padding-left: 14px; padding-right: 14px; } }
+@media (prefers-reduced-motion: no-preference) { .tabs button, .seg button { transition: background .15s, color .15s; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Property Quotation Calculator</h1>
+      <p class="sub">Sale, purchase and rental quotations using the legal fee, valuation and tenancy tables from Calculation.xlsx.</p>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Quotation type">
+      <button role="tab" id="tab-sale" aria-selected="true" data-tab="sale">Sale / Purchase</button>
+      <button role="tab" id="tab-rent" aria-selected="false" data-tab="rent">Rental</button>
+      <button role="tab" id="tab-stamp" aria-selected="false" data-tab="stamp">Tenancy Stamp Duty</button>
+    </div>
+  </header>
+
+  <!-- SALE -->
+  <section id="view-sale" class="grid">
+    <form class="panel" id="saleForm" autocomplete="off">
+      <h2>Property &amp; loan</h2>
+      <div class="fieldset">
+        <label class="f">Quotation type
+          <div class="seg" role="group" aria-label="Quotation type">
+            <button type="button" id="mode-std" aria-pressed="true" data-mode="std">Standard</button>
+            <button type="button" id="mode-fin" aria-pressed="false" data-mode="fin">Finance Loan Legal Fee &amp; Valuation Fee</button>
+          </div>
+        </label>
+        <label class="f">Client name <small>optional</small><div class="inp"><input id="s-client" type="text" placeholder="e.g. Mr Tan"></div></label>
+        <label class="f">Property address <small>optional</small><div class="inp"><input id="s-prop" type="text" placeholder="e.g. 12, Jalan Molek 1/2, Taman Molek"></div></label>
+        <label class="f">SPA Price<div class="inp"><span>RM</span><input id="s-spa" class="money" inputmode="decimal" value="1,000,000"></div></label>
+        <label class="f">Selling Price<div class="inp"><span>RM</span><input id="s-sell" class="money" inputmode="decimal" value="850,000"></div></label>
+        <div class="row2">
+          <label class="f">Margin of finance<div class="inp"><input id="s-margin" inputmode="decimal" value="85"><span>%</span></div></label>
+          <label class="f">Interest rate<div class="inp"><input id="s-rate" inputmode="decimal" value="4"><span>% p.a.</span></div></label>
+        </div>
+        <div class="row2">
+          <label class="f">Loan tenure<div class="inp"><input id="s-tenure" inputmode="decimal" value="30"><span>yrs</span></div></label>
+          <label class="f">1st house waiver<div class="inp"><select id="s-waiver"><option value="N">No</option><option value="Y">Yes</option></select></div></label>
+        </div>
+        <div class="row2">
+          <label class="f">Agency fee <small>+8% SST</small><div class="inp"><input id="s-agency" inputmode="decimal" value="1"><span>%</span></div></label>
+          <label class="f">Consent fee <small>optional</small><div class="inp"><span>RM</span><input id="s-consent" class="money" inputmode="decimal" value=""></div></label>
+        </div>
+        <label class="f">RPGT for mark-up portion <small>optional</small><div class="inp"><span>RM</span><input id="s-rpgt" class="money" inputmode="decimal" value=""></div></label>
+        <label class="check"><input type="checkbox" id="s-spa-manual"> Key in actual SPA &amp; Loan Legal Fee</label>
+        <div class="fieldset" id="spaManualWrap" hidden>
+          <div class="row2">
+            <label class="f">SPA legal fee <small>actual quote</small><div class="inp"><span>RM</span><input id="s-spa-fee" class="money" inputmode="decimal" value=""></div></label>
+            <label class="f">Loan legal fee <small>actual quote</small><div class="inp"><span>RM</span><input id="s-loan-fee" class="money" inputmode="decimal" value=""></div></label>
+          </div>
+          <p class="hint">Leave a box blank to use the table amount for that fee.</p>
+        </div>
+        <label class="check"><input type="checkbox" id="s-agency-on" checked> Include agency fee</label>
+        <label class="check"><input type="checkbox" id="s-cn" checked> Show Chinese labels</label>
+        <p class="hint">Loan amount = SPA price × margin. Set margin to 0 for a cash purchase.</p>
+      </div>
+    </form>
+
+    <div class="slip" aria-live="polite">
+      <div class="slip-paper" id="salePaper">
+        <div class="slip-band"></div>
+        <div class="slip-head"><div class="row"><h3>Quotation</h3><div class="meta" id="saleMeta"></div></div><div class="addr" id="saleAddr" hidden></div></div>
+        <div class="slip-body" id="saleBody"></div>
+      </div>
+      <div class="actions">
+        <button class="btn" type="button" id="copySale">Copy (English)</button>
+        <button class="btn ghost" type="button" id="copySaleZh">Copy (Chinese)</button>
+        <button class="btn ghost" type="button" id="jpgSale" hidden>Download JPG</button>
+        <span class="toast" id="saleToast" role="status"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- RENTAL -->
+  <section id="view-rent" class="grid" hidden>
+    <form class="panel" id="rentForm" autocomplete="off">
+      <h2>Tenancy</h2>
+      <div class="fieldset">
+        <label class="f">Package
+          <div class="inp"><select id="r-type">
+            <option value="2m">Deposit 2+1+0.5</option>
+            <option value="1m">Deposit 1+1+0.5</option>
+            <option value="111">Deposit 1+1+1</option>
+            <option value="2c">Deposit 2+1 (No Utility Deposit)</option>
+          </select></div>
+        </label>
+        <label class="f">Client name <small>optional</small><div class="inp"><input id="r-client" type="text" placeholder="e.g. Ms Lee"></div></label>
+        <label class="f">Property address <small>optional</small><div class="inp"><input id="r-prop" type="text" placeholder="e.g. 8, Jalan Austin Perdana 2/5, Mount Austin"></div></label>
+        <div class="row2">
+          <label class="f">Monthly rental<div class="inp"><span>RM</span><input id="r-rent" class="money" inputmode="decimal" value="2,000"></div></label>
+          <label class="f">Tenancy period<div class="inp"><select id="r-years"><option value="1">1 year</option><option value="2">2 years</option><option value="3">3 years</option></select></div></label>
+        </div>
+        <label class="check"><input type="checkbox" id="r-agency-on" checked> Include agency fee</label>
+        <p class="hint">Agency fee is half a month's rental plus 8% SST. Tenancy agreement fee uses the table formula: (rental × 12 ÷ 250, rounded up) × 1 for 1 year or × 3 for 2–3 years, plus RM120 + RM200.</p>
+      </div>
+    </form>
+
+    <div class="slip" aria-live="polite">
+      <div class="slip-paper" id="rentPaper">
+        <div class="slip-band"></div>
+        <div class="slip-head"><div class="row"><h3>Rental Quotation</h3><div class="meta" id="rentMeta"></div></div><div class="addr" id="rentAddr" hidden></div></div>
+        <div class="slip-body" id="rentBody"></div>
+      </div>
+      <div class="actions">
+        <button class="btn" type="button" id="copyRentEn">Copy (English)</button>
+        <button class="btn ghost" type="button" id="copyRentMs">Copy (Malay)</button>
+        <button class="btn ghost" type="button" id="copyRentZh">Copy (Chinese)</button>
+        <button class="btn ghost" type="button" id="jpgRent" hidden>Download JPG</button>
+        <span class="toast" id="rentToast" role="status"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- TENANCY STAMP DUTY -->
+  <section id="view-stamp" class="grid" hidden>
+    <form class="panel" id="stampForm" autocomplete="off">
+      <h2>Tenancy stamp duty</h2>
+      <div class="fieldset">
+        <div class="row2">
+          <label class="f">Monthly rental<div class="inp"><span>RM</span><input id="t-rent" class="money" inputmode="decimal" value="2,000"></div></label>
+          <label class="f">Tenancy period<div class="inp"><select id="t-years"><option value="1">1 year</option><option value="2">2 years</option><option value="3">3 years</option></select></div></label>
+        </div>
+        <label class="check"><input type="checkbox" id="t-processing" checked> Processing fee (RM10)</label>
+        <label class="check"><input type="checkbox" id="t-duplicate" checked> Duplicate copy (RM10)</label>
+        <p class="hint">From the Tenancy Stamp Duty table: annual rental ÷ 250, rounded up, × 1 for a 1-year tenancy or × 3 for 2 or 3 years.</p>
+      </div>
+    </form>
+
+    <div class="slip" aria-live="polite">
+      <div class="slip-paper" id="stampPaper">
+        <div class="slip-band"></div>
+        <div class="slip-head"><div class="row"><h3>Tenancy Stamp Duty</h3><div class="meta" id="stampMeta"></div></div></div>
+        <div class="slip-body" id="stampBody"></div>
+      </div>
+      <div class="actions">
+        <button class="btn" type="button" id="copyStampEn">Copy (English)</button>
+        <button class="btn ghost" type="button" id="jpgStamp" hidden>Download JPG</button>
+        <span class="toast" id="stampToast" role="status"></span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* Fee tables from Calculation.xlsx: [amount, "Total for 2" column (column E)] */
+const FEES = {"spa":[[50000,5098],[60000,5403],[70000,5638],[80000,5873],[90000,6108],[100000,6343],[110000,6828],[120000,7163],[130000,7498],[140000,7833],[150000,8168],[160000,8503],[170000,8838],[180000,9173],[190000,9508],[200000,9843],[210000,10478],[220000,10813],[230000,11148],[240000,11483],[250000,11818],[260000,12153],[270000,12488],[280000,12823],[290000,13158],[300000,13493],[310000,14728],[320000,15063],[330000,15398],[340000,15733],[350000,16068],[360000,16403],[370000,16738],[380000,17073],[390000,17408],[400000,17743],[410000,18578],[420000,18913],[430000,19248],[440000,19583],[450000,19918],[460000,20253],[470000,20588],[480000,20923],[490000,21258],[500000,21593],[510000,22501],[520000,22909],[530000,23317],[540000,23725],[550000,24133],[560000,24541],[570000,24949],[580000,25357],[590000,25765],[600000,26173],[610000,27081],[620000,27489],[630000,27897],[640000,28305],[650000,28713],[660000,29121],[670000,29529],[680000,29937],[690000,30345],[700000,30753],[710000,31661],[720000,32069],[730000,32477],[740000,32885],[750000,33293],[760000,33701],[770000,34109],[780000,34517],[790000,34925],[800000,35333],[810000,36241],[820000,36649],[830000,37057],[840000,37465],[850000,37873],[860000,38281],[870000,38689],[880000,39097],[890000,39505],[900000,39913],[910000,40821],[920000,41229],[930000,41637],[940000,42045],[950000,42453],[960000,42861],[970000,43269],[980000,43677],[990000,44085],[1000000,44493],[1010000,45251],[1020000,45759],[1030000,46267],[1040000,46775],[1050000,47283],[1060000,48041],[1070000,48549],[1080000,49057],[1090000,49565],[1100000,50073],[1110000,50831],[1120000,51339],[1130000,51847],[1140000,52355],[1150000,52863],[1160000,53621],[1170000,54129],[1180000,54637],[1190000,55145],[1200000,55653],[1210000,56411],[1220000,56919],[1230000,57427],[1240000,57935],[1250000,58443],[1260000,59201],[1270000,59709],[1280000,60217],[1290000,60725],[1300000,61233],[1310000,61991],[1320000,62499],[1330000,63007],[1340000,63515],[1350000,64023],[1360000,64781],[1370000,65289],[1380000,65797],[1390000,66305],[1400000,66813],[1410000,67571],[1420000,68079],[1430000,68587],[1440000,69095],[1450000,69603],[1460000,70361],[1470000,70869],[1480000,71377],[1490000,71885],[1500000,72393],[1510000,73151],[1520000,73659],[1530000,74167],[1540000,74675],[1550000,75183],[1560000,75941],[1570000,76449],[1580000,76957],[1590000,77465],[1600000,77973],[1610000,78731],[1620000,79239],[1630000,79747],[1640000,80255],[1650000,80763],[1660000,81521],[1670000,82029],[1680000,82537],[1690000,83045],[1700000,83553],[1710000,84311],[1720000,84819],[1730000,85327],[1740000,85835],[1750000,86343],[1760000,87101],[1770000,87609],[1780000,88117],[1790000,88625],[1800000,89133],[1810000,89891],[1820000,90399],[1830000,90907],[1840000,91415],[1850000,91923],[1860000,92681],[1870000,93189],[1880000,93697],[1890000,94205],[1900000,94713],[1910000,95471],[1920000,95979],[1930000,96487],[1940000,96995],[1950000,97503],[1960000,98261],[1970000,98769],[1980000,99277],[1990000,99785],[2000000,100293]],"loan":[[50000,5867],[55000,5959.5],[60000,6052],[65000,6144.5],[70000,6237],[75000,6329.5],[80000,6422],[85000,6514.5],[90000,6607],[95000,6699.5],[100000,6792],[105000,6884.5],[110000,6977],[115000,7069.5],[120000,7162],[125000,7254.5],[130000,7347],[135000,7439.5],[140000,7532],[145000,7624.5],[150000,7717],[155000,7809.5],[160000,7902],[165000,7994.5],[170000,8087],[175000,8179.5],[180000,8272],[185000,8364.5],[190000,8457],[195000,8549.5],[200000,8642],[205000,8734.5],[210000,8827],[215000,8919.5],[220000,9012],[225000,9104.5],[230000,9197],[235000,9289.5],[240000,9382],[245000,9474.5],[250000,9567],[255000,9659.5],[260000,9752],[265000,9844.5],[270000,9937],[275000,10029.5],[280000,10122],[285000,10214.5],[290000,10307],[295000,10399.5],[300000,10492],[305000,10584.5],[310000,10677],[315000,10769.5],[320000,10862],[325000,10954.5],[330000,11047],[335000,11139.5],[340000,11232],[345000,11324.5],[350000,11417],[355000,11509.5],[360000,11602],[365000,11694.5],[370000,11787],[375000,11879.5],[380000,11972],[385000,12064.5],[390000,12157],[395000,12249.5],[400000,12342],[405000,12441.25],[410000,12540.5],[415000,12639.75],[420000,12739],[425000,12838.25],[430000,12937.5],[435000,13036.75],[440000,13136],[445000,13235.25],[450000,13334.5],[455000,13433.75],[460000,13533],[465000,13632.25],[470000,13731.5],[475000,13830.75],[480000,13930],[485000,14029.25],[490000,14128.5],[495000,14227.75],[500000,14327],[505000,14411.4],[510000,14495.8],[515000,14580.2],[520000,14664.6],[525000,14749],[530000,14833.4],[535000,14917.8],[540000,15002.2],[545000,15086.6],[550000,15171],[555000,15255.4],[560000,15339.8],[565000,15424.2],[570000,15508.6],[575000,15593],[580000,15677.4],[585000,15761.8],[590000,15846.2],[595000,15930.6],[600000,16015],[605000,16099.4],[610000,16183.8],[615000,16268.2],[620000,16352.6],[625000,16437],[630000,16521.4],[635000,16605.8],[640000,16690.2],[645000,16774.6],[650000,16859],[655000,16943.4],[660000,17027.8],[665000,17112.2],[670000,17196.6],[675000,17281],[680000,17365.4],[685000,17449.8],[690000,17534.2],[695000,17618.6],[700000,17703],[705000,17787.4],[710000,17871.8],[715000,17956.2],[720000,18040.6],[725000,18125],[730000,18209.4],[735000,18293.8],[740000,18378.2],[745000,18462.6],[750000,18547],[755000,18631.4],[760000,18715.8],[765000,18800.2],[770000,18884.6],[775000,18969],[780000,19053.4],[785000,19137.8],[790000,19222.2],[795000,19306.6],[800000,19391],[805000,19475.4],[810000,19559.8],[815000,19644.2],[820000,19728.6],[825000,19813],[830000,19897.4],[835000,19981.8],[840000,20066.2],[845000,20150.6],[850000,20235],[855000,20319.4],[860000,20403.8],[865000,20488.2],[870000,20572.6],[875000,20657],[880000,20741.4],[885000,20825.8],[890000,20910.2],[895000,20994.6],[900000,21079],[905000,21163.4],[910000,21247.8],[915000,21332.2],[920000,21416.6],[925000,21501],[930000,21585.4],[935000,21669.8],[940000,21754.2],[945000,21838.6],[950000,21923],[955000,22007.4],[960000,22091.8],[965000,22176.2],[970000,22260.6],[975000,22345],[980000,22429.4],[985000,22513.8],[990000,22598.2],[995000,22682.6],[1000000,22767],[1005000,22851.4],[1010000,22935.8],[1015000,23020.2],[1020000,23104.6],[1025000,23189],[1030000,23273.4],[1035000,23357.8],[1040000,23442.2],[1045000,23526.6],[1050000,23611],[1055000,23695.4],[1060000,23779.8],[1065000,23864.2],[1070000,23948.6],[1075000,24033],[1080000,24117.4],[1085000,24201.8],[1090000,24286.2],[1095000,24370.6],[1100000,24455],[1105000,24539.4],[1110000,24623.8],[1115000,24708.2],[1120000,24792.6],[1125000,24877],[1130000,24961.4],[1135000,25045.8],[1140000,25130.2],[1145000,25214.6],[1150000,25299],[1155000,25383.4],[1160000,25467.8],[1165000,25552.2],[1170000,25636.6],[1175000,25721],[1180000,25805.4],[1185000,25889.8],[1190000,25974.2],[1195000,26058.6],[1200000,26143],[1205000,26227.4],[1210000,26311.8],[1215000,26396.2],[1220000,26480.6],[1225000,26565],[1230000,26649.4],[1235000,26733.8],[1240000,26818.2],[1245000,26902.6],[1250000,26987],[1255000,27071.4],[1260000,27155.8],[1265000,27240.2],[1270000,27324.6],[1275000,27409],[1280000,27493.4],[1285000,27577.8],[1290000,27662.2],[1295000,27746.6],[1300000,27831],[1305000,27915.4],[1310000,27999.8],[1315000,28084.2],[1320000,28168.6],[1325000,28253],[1330000,28337.4],[1335000,28421.8],[1340000,28506.2],[1345000,28590.6],[1350000,28675],[1355000,28759.4],[1360000,28843.8],[1365000,28928.2],[1370000,29012.6],[1375000,29097],[1380000,29181.4],[1385000,29265.8],[1390000,29350.2],[1395000,29434.6],[1400000,29519],[1405000,29603.4],[1410000,29687.8],[1415000,29772.2],[1420000,29856.6],[1425000,29941],[1430000,30025.4],[1435000,30109.8],[1440000,30194.2],[1445000,30278.6],[1450000,30363],[1455000,30447.4],[1460000,30531.8],[1465000,30616.2],[1470000,30700.6],[1475000,30785],[1480000,30869.4],[1485000,30953.8],[1490000,31038.2],[1495000,31122.6],[1500000,31207],[1505000,31291.4],[1510000,31375.8],[1515000,31460.2],[1520000,31544.6],[1525000,31629],[1530000,31713.4],[1535000,31797.8],[1540000,31882.2],[1545000,31966.6],[1550000,32051],[1555000,32135.4],[1560000,32219.8],[1565000,32304.2],[1570000,32388.6],[1575000,32473],[1580000,32557.4],[1585000,32641.8],[1590000,32726.2],[1595000,32810.6],[1600000,32895],[1605000,32979.4],[1610000,33063.8],[1615000,33148.2],[1620000,33232.6],[1625000,33317],[1630000,33401.4],[1635000,33485.8],[1640000,33570.2],[1645000,33654.6],[1650000,33739],[1655000,33823.4],[1660000,33907.8],[1665000,33992.2],[1670000,34076.6],[1675000,34161],[1680000,34245.4],[1685000,34329.8],[1690000,34414.2],[1695000,34498.6],[1700000,34583],[1705000,34667.4],[1710000,34751.8],[1715000,34836.2],[1720000,34920.6],[1725000,35005],[1730000,35089.4],[1735000,35173.8],[1740000,35258.2],[1745000,35342.6],[1750000,35427],[1755000,35511.4],[1760000,35595.8],[1765000,35680.2],[1770000,35764.6],[1775000,35849],[1780000,35933.4],[1785000,36017.8],[1790000,36102.2],[1795000,36186.6],[1800000,36271],[1805000,36355.4],[1810000,36439.8],[1815000,36524.2],[1820000,36608.6],[1825000,36693],[1830000,36777.4],[1835000,36861.8],[1840000,36946.2],[1845000,37030.6],[1850000,37115],[1855000,37199.4],[1860000,37283.8],[1865000,37368.2],[1870000,37452.6],[1875000,37537],[1880000,37616],[1885000,37695],[1890000,37774],[1895000,37853],[1900000,37932],[1905000,38011],[1910000,38090],[1915000,38169],[1920000,38248],[1925000,38327],[1930000,38406],[1935000,38485],[1940000,38564],[1945000,38643],[1950000,38722],[1955000,38801],[1960000,38880],[1965000,38959],[1970000,39038],[1975000,39117],[1980000,39196],[1985000,39275],[1990000,39354],[1995000,39433],[2000000,39512]]};
+
+/* ---------- Excel-equivalent helpers ---------- */
+// ROUNDUP(x, 0) and ROUNDUP(x, -3); toFixed trims float noise the way Excel does
+const roundUp0 = x => Math.ceil(+x.toFixed(9));
+const roundUpThousand = x => Math.ceil(+(x / 1000).toFixed(9)) * 1000;
+
+// VLOOKUP exact match, falling back to the next higher amount in the table (Excel column H)
+function feeLookup(table, amount) {
+  const exact = table.find(r => r[0] === amount);
+  if (exact) return exact[1];
+  const higher = table.find(r => r[0] > amount);
+  return higher ? higher[1] : null;
+}
+
+// Valuation sheet formula, evaluated at the matching table price (RM10,000 steps)
+function valuationFee(price) {
+  const d = Math.max(100000, Math.ceil(+(price / 10000).toFixed(9)) * 10000);
+  let v;
+  if (d <= 100000) v = d * 0.0025 + 500;
+  else if (d <= 2000000) v = 100000 * 0.0025 + (d - 100000) * 0.002 + 500;
+  else v = 100000 * 0.0025 + 1900000 * 0.002 + (d - 2000000) * 0.00167 + 500;
+  return v * 1.08;
+}
+
+// ROUNDUP(PMT(rate/12, years*12, -loan), 0)
+function installment(loan, ratePct, years) {
+  const r = ratePct / 100 / 12, n = years * 12;
+  if (!loan || !n) return 0;
+  const p = r ? loan * r / (1 - Math.pow(1 + r, -n)) : loan / n;
+  return roundUp0(p);
+}
+
+// Tenancy Agreement sheet: 1 year uses column G (x1), 2 or 3 years column H (x3)
+function tenancyFee(rent, years) {
+  return stampDuty(rent, years) + 120 + 200;
+}
+
+// Tenancy Stamp Duty Calculation sheet: ROUNDUP(rental*12/250, 0) x1 for 1 year, x3 for 2 or 3 years
+function stampDuty(rent, years) {
+  return roundUp0(rent * 12 / 250) * (years === 1 ? 1 : 3);
+}
+
+/* ---------- formatting ---------- */
+const fmt = n => n.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const rm = n => (n < 0 ? "-RM " : "RM ") + fmt(Math.abs(n));
+const rmText = n => (n < 0 ? "-RM" : "RM") + fmt(Math.abs(n));
+const num = id => { const v = parseFloat(String(document.getElementById(id).value).replace(/[,\s]/g, "")); return isFinite(v) ? v : 0; };
+const val = id => document.getElementById(id).value.trim();
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const today = () => new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+
+/* line: {en, cn, note, amount, pm, text, na} */
+function lineHTML(l, showCn) {
+  let amt;
+  if (l.na) amt = `<div class="amt na">${esc(l.na)}</div>`;
+  else if (l.text) amt = `<div class="amt txt">${esc(l.text)}</div>`;
+  else amt = `<div class="amt${l.amount < 0 ? " neg" : ""}">${rm(l.amount)}${l.pm ? '<span class="pm">+/-</span>' : ""}</div>`;
+  return `<div class="li"><div class="lbl"><b>${esc(l.en)}</b>${showCn && l.cn ? `<span class="cn">${esc(l.cn)}</span>` : ""}${l.note ? `<span class="note">${esc(l.note)}</span>` : ""}</div>${amt}</div>`;
+}
+// Copy text in one language: English uses en/note, Chinese uses zh (or cn)/noteZh
+const ZH = { "(actual quote)": "(律师实际报价)", "Added to loan": "已加入贷款", "Check with lawyer": "请向律师确认" };
+function lineText(l, lang) {
+  const zh = lang === "zh";
+  const note = zh ? (l.noteZh || ZH[l.note] || l.note) : l.note;
+  const label = (zh ? (l.zh || l.cn || l.en) : l.en) + (note ? " " + note : "");
+  const v = l.na ? (zh ? ZH[l.na] : l.na) : l.text ? (zh ? ZH[l.text] : l.text) : rmText(l.amount) + (l.pm ? " +/-" : "");
+  return zh ? `${label}：${v}` : `${label}: ${v}`;
+}
+
+/* ---------- SALE ---------- */
+let mode = "std";
+let saleText = { en: "", zh: "" };
+
+function calcSale() {
+  const spa = num("s-spa"), sell = num("s-sell"), margin = num("s-margin");
+  const rate = num("s-rate"), tenure = num("s-tenure"), agencyPct = num("s-agency");
+  const consent = num("s-consent"), rpgt = num("s-rpgt");
+  const waiver = val("s-waiver") === "Y";
+  const loan = spa * margin / 100;
+
+  const spaWaiver = waiver ? (spa - 100000) * 0.02 + 1000 : 0;
+  const loanWaiver = waiver ? loan * 0.005 : 0;
+  // "Key in myself" uses the lawyer's actual quote as-is (no table, round-up or waiver deduction)
+  const spaManual = document.getElementById("s-spa-manual").checked;
+  document.getElementById("spaManualWrap").hidden = !spaManual;
+  const spaQuote = spaManual && val("s-spa-fee") !== "";
+  const loanQuote = spaManual && loan > 0 && val("s-loan-fee") !== "";
+  const spaRaw = spaQuote ? 0 : feeLookup(FEES.spa, spa);
+  const loanRaw = loan && !loanQuote ? feeLookup(FEES.loan, loan) : 0;
+  const spaLegal = spaQuote ? num("s-spa-fee") : spaRaw === null ? null : roundUpThousand(spaRaw) - spaWaiver;
+  const loanLegal = loanQuote ? num("s-loan-fee") : loanRaw === null ? null : (loan ? roundUpThousand(loanRaw) - loanWaiver : 0);
+  const agencyOn = document.getElementById("s-agency-on").checked;
+  const agency = agencyOn ? sell * agencyPct / 100 * 1.08 : 0;
+  const downpayment = sell - loan;
+  const warnings = [];
+  const spaNote = spaQuote ? "(actual quote)" : undefined;
+  const loanNote = loanQuote ? "(actual quote)" : undefined;
+  if (spaRaw === null) warnings.push({ en: "SPA price is above RM2,000,000, the highest amount in the SPA legal fee table. Get the legal fee from the lawyer.", zh: "买卖合同价钱超过 RM2,000,000（律师费表的最高金额），请向律师确认律师费。" });
+  if (loanRaw === null) warnings.push({ en: "Loan amount is above RM2,000,000, the highest amount in the loan legal fee table. Get the legal fee from the lawyer.", zh: "贷款数目超过 RM2,000,000（律师费表的最高金额），请向律师确认律师费。" });
+
+  const top = [], prep = [];
+  const pct = `(${+margin.toFixed(2)}%)`;
+  const instNote = `(${+rate.toFixed(2)}%, ${+tenure.toFixed(1)} yrs)`;
+  const instNoteZh = `(利率 ${+rate.toFixed(2)}%, ${+tenure.toFixed(1)} 年)`;
+  top.push({ en: "SPA Price", cn: "买卖合同价钱", amount: spa });
+  top.push({ en: "Selling Price", cn: "卖价", amount: sell });
+  top.push({ en: "Loan Amount " + pct, cn: "贷款数目", zh: "贷款数目 " + pct, amount: loan });
+
+  let total;
+  const spaLabel = waiver ? "SPA Legal Fee" : "SPA Legal Fee & Stamp Duty";
+  const loanLabel = waiver ? "Loan Legal Fee" : "Loan Legal Fee & Stamp Duty";
+  const spaCn = waiver ? "买卖合同律师费" : "买卖合同律师费及印花税";
+  const loanCn = waiver ? "贷款合同律师费" : "贷款合同律师费及印花税";
+
+  if (mode === "std") {
+    const valuation = loan ? roundUp0(valuationFee(spa)) : 0;
+    top.push({ en: "Monthly Installment", cn: "月供", note: instNote, noteZh: instNoteZh, amount: installment(loan, rate, tenure), pm: true });
+    prep.push({ en: "Downpayment", cn: "头期", amount: downpayment });
+    prep.push(spaLegal === null ? { en: spaLabel, cn: spaCn, na: "Check with lawyer" } : { en: spaLabel, cn: spaCn, note: spaNote, amount: spaLegal, pm: true });
+    prep.push(loanLegal === null ? { en: loanLabel, cn: loanCn, na: "Check with lawyer" } : { en: loanLabel, cn: loanCn, note: loanNote, amount: loanLegal, pm: true });
+    prep.push({ en: "Valuation Fee", cn: "估价费", amount: valuation, pm: true });
+    if (agencyOn) prep.push({ en: "Agency Fee", cn: "中介费", amount: agency });
+    if (consent) prep.push({ en: "Consent Fee", cn: "转让同意费", amount: consent, pm: true });
+    if (rpgt) prep.push({ en: "RPGT for Mark Up Portion", cn: "加价部分的产业盈利税 (RPGT)", amount: rpgt });
+    total = downpayment + (spaLegal || 0) + (loanLegal || 0) + valuation + agency + consent + rpgt;
+  } else {
+    // "Loan Legal Fees + Valuation Fee" row: valuation is not rounded up in the Excel here
+    const added = loan ? (loanLegal || 0) + valuationFee(spa) : 0;
+    const totalLoan = loan + added;
+    top.push({ en: "Loan Legal Fees + Valuation Fee", cn: "贷款律师费 + 估价费", amount: added, pm: true });
+    top.push({ en: "Total Loan Amount", cn: "总贷款数目", amount: totalLoan, pm: true });
+    top.push({ en: "Monthly Installment", cn: "月供", note: instNote, noteZh: instNoteZh, amount: installment(totalLoan, rate, tenure), pm: true });
+    prep.push({ en: "Downpayment", cn: "头期", amount: downpayment });
+    prep.push(spaLegal === null ? { en: spaLabel, cn: spaCn, na: "Check with lawyer" } : { en: spaLabel, cn: spaCn, note: spaNote, amount: spaLegal, pm: true });
+    prep.push({ en: loanLabel + " (Add to Loan)", cn: loanCn, zh: loanCn + "（加入贷款）", note: loanNote, text: "Added to loan", pm: true });
+    prep.push({ en: "Valuation Fee (Add to Loan)", cn: "估价费", zh: "估价费（加入贷款）", text: "Added to loan", pm: true });
+    if (agencyOn) prep.push({ en: "Agency Fee", cn: "中介费", amount: agency });
+    if (consent) prep.push({ en: "Consent Fee", cn: "转让同意费", amount: consent, pm: true });
+    if (rpgt) prep.push({ en: "RPGT for Mark Up Portion", cn: "加价部分的产业盈利税 (RPGT)", amount: rpgt });
+    total = downpayment + (spaLegal || 0) + agency + consent + rpgt;
+  }
+
+  const showCn = document.getElementById("s-cn").checked;
+  const client = val("s-client"), prop = val("s-prop");
+  document.getElementById("saleMeta").textContent = [client, today()].filter(Boolean).join(" · ");
+  const saleAddr = document.getElementById("saleAddr");
+  saleAddr.textContent = prop; saleAddr.hidden = !prop;
+  document.getElementById("saleBody").innerHTML =
+    top.map(l => lineHTML(l, showCn)).join("") +
+    `<div class="sect">Amount to be prepared</div>` +
+    prep.map(l => lineHTML(l, showCn)).join("") +
+    `<div class="total"><div class="lbl">Total (RM)</div><div class="amt">${rm(total)}<span class="pm">+/-</span></div></div>` +
+    warnings.map(w => `<div class="warnbox">${esc(w.en)}</div>`).join("") +
+    `<p class="foot">Fees are for individuals only. This is an estimate and may vary with further information.</p>`;
+
+  saleText.en = [
+    "*Quotation*",
+    prop ? `Property Address: ${prop}` : null,
+    client ? `Client: ${client}` : null,
+    `Date: ${today()}`,
+    "",
+    ...top.map(l => lineText(l, "en")),
+    "",
+    "*Amount to be prepared*",
+    ...prep.map(l => lineText(l, "en")),
+    "",
+    `*Total (RM): ${rmText(total)} +/-*`,
+    ...warnings.map(w => "Note: " + w.en),
+    "",
+    "Fees are for individuals only. This is an estimate and may vary with further information.",
+  ].filter(x => x !== null).join("\n");
+  const d = new Date();
+  saleText.zh = [
+    "*报价单*",
+    prop ? `产业地址：${prop}` : null,
+    client ? `客户：${client}` : null,
+    `日期：${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`,
+    "",
+    ...top.map(l => lineText(l, "zh")),
+    "",
+    "*需准备的金额*",
+    ...prep.map(l => lineText(l, "zh")),
+    "",
+    `*总额 (RM): ${rmText(total)} +/-*`,
+    ...warnings.map(w => "注：" + w.zh),
+    "",
+    "以上费用只适用于个人买家，仅供参考，实际费用可能会根据进一步资料而有所调整。",
+  ].filter(x => x !== null).join("\n");
+}
+
+/* ---------- RENTAL ---------- */
+let rentText = { en: "", ms: "" };
+
+function calcRent() {
+  const type = val("r-type"), rent = num("r-rent"), years = parseInt(val("r-years"), 10);
+  const months = type === "1m" || type === "111" ? 1 : 2;
+  const lines = [];
+  lines.push({ en: `Security Deposit (${months} Month${months > 1 ? "s" : ""})`, ms: `Deposit Sewa (${months} Bulan)`, zh: `租屋押金（${months}个月）`, amount: rent * months });
+  if (type === "111") lines.push({ en: "Utility Deposit (1 Month)", ms: "Deposit Air & Elektrik (1 Bulan)", zh: "水电押金（1个月）", amount: rent });
+  else if (type !== "2c") lines.push({ en: "Utility Deposit (1/2 Month)", ms: "Deposit Air & Elektrik (1/2 Bulan)", zh: "水电押金（半个月）", amount: rent / 2 });
+  lines.push({ en: "1st Month Rental", ms: "Sewa Bulan Pertama", zh: "第一个月租金", amount: rent });
+  lines.push({ en: `Tenancy Agreement (${years} Year${years > 1 ? "s" : ""})`, ms: `Agreement (${years} Tahun)`, zh: `合同费（${years}年）`, amount: tenancyFee(rent, years) });
+  if (document.getElementById("r-agency-on").checked) lines.push({ en: "Agency Fee", ms: "Agency Fee", zh: "中介费", amount: rent / 2 * 1.08 });
+  const total = lines.reduce((s, l) => s + l.amount, 0);
+
+  const client = val("r-client"), prop = val("r-prop");
+  const pkg = { "2m": "Deposit 2+1+0.5", "1m": "Deposit 1+1+0.5", "111": "Deposit 1+1+1", "2c": "Deposit 2+1 (No Utility Deposit)" }[type];
+  document.getElementById("rentMeta").textContent = [client, today()].filter(Boolean).join(" · ");
+  const rentAddr = document.getElementById("rentAddr");
+  rentAddr.textContent = prop; rentAddr.hidden = !prop;
+  document.getElementById("rentBody").innerHTML =
+    `<div class="li"><div class="lbl"><b>Monthly Rental</b><span class="note">${esc(pkg)}</span></div><div class="amt">${rm(rent)}</div></div>` +
+    `<div class="sect">Amount to be prepared</div>` +
+    lines.map(l => lineHTML({ en: l.en, cn: l.ms, amount: l.amount }, true)).join("") +
+    `<div class="total"><div class="lbl">Total (RM)</div><div class="amt">${rm(total)}</div></div>` +
+    `<p class="foot">**TNB &amp; SAJ to be applied under Tenant's name</p>`;
+
+  const head = (prop ? `\nProperty Address: ${prop}` : "") + (client ? `\nClient: ${client}` : "");
+  rentText.en = [`*Rental Quotation*${head}`, `Monthly Rental: ${rmText(rent)}`, "", "*Amount to be prepared*",
+    ...lines.map(l => `${l.en} - ${rmText(l.amount)}`), `*Total - ${rmText(total)}*`, "", "**TNB & SAJ to be applied under Tenant's name"].join("\n");
+  rentText.ms = [`*Sebut Harga Sewa*${head.replace("Property Address:", "Alamat Hartanah:").replace("Client:", "Pelanggan:")}`, `Sewa Bulanan: ${rmText(rent)}`, "", "*Jumlah yang perlu disediakan*",
+    ...lines.map(l => `${l.ms} - ${rmText(l.amount)}`), `*Total - ${rmText(total)}*`, "", "**TNB & SAJ account apply atas nama tenant"].join("\n");
+  rentText.zh = ["*租屋报价单*", prop ? `产业地址：${prop}` : null, client ? `客户：${client}` : null, `月租：${rmText(rent)}`, "", "*需准备的金额*",
+    ...lines.map(l => `${l.zh} - ${rmText(l.amount)}`), `*总额 - ${rmText(total)}*`, "", "**TNB 电费及 SAJ 水费户口须以租客名义申请"].filter(x => x !== null).join("\n");
+}
+
+/* ---------- TENANCY STAMP DUTY ---------- */
+let stampText = { en: "" };
+
+function calcStamp() {
+  const rent = num("t-rent"), years = parseInt(val("t-years"), 10);
+  const annual = rent * 12;
+  const duty = stampDuty(rent, years);
+  const yrs = `${years} Year${years > 1 ? "s" : ""}`;
+  const extras = [];
+  if (document.getElementById("t-processing").checked) extras.push({ en: "Processing Fee", amount: 10 });
+  if (document.getElementById("t-duplicate").checked) extras.push({ en: "Duplicate Copy", amount: 10 });
+  const total = duty + extras.reduce((s, l) => s + l.amount, 0);
+
+  document.getElementById("stampMeta").textContent = today();
+  document.getElementById("stampBody").innerHTML =
+    lineHTML({ en: "Monthly Rental", amount: rent }, false) +
+    lineHTML({ en: "Annual Rental", note: "Monthly rental × 12", amount: annual }, false) +
+    lineHTML({ en: "Tenancy Period", text: yrs }, false) +
+    `<div class="sect">Amount payable</div>` +
+    lineHTML({ en: "Stamp Duty", note: `Annual rental ÷ 250, rounded up, × ${years === 1 ? 1 : 3}`, amount: duty }, false) +
+    extras.map(l => lineHTML(l, false)).join("") +
+    `<div class="total"><div class="lbl">Total (RM)</div><div class="amt">${rm(total)}</div></div>`;
+
+  stampText.en = ["*Tenancy Stamp Duty*", "",
+    `Monthly Rental: ${rmText(rent)}`, `Annual Rental: ${rmText(annual)}`, `Tenancy Period: ${yrs}`, "",
+    "*Amount payable*", `Stamp Duty: ${rmText(duty)}`, ...extras.map(l => `${l.en}: ${rmText(l.amount)}`), "",
+    `*Total (RM): ${rmText(total)}*`].filter(x => x !== null).join("\n");
+}
+
+/* ---------- wiring ---------- */
+function copy(text, toastId, anchor) {
+  const toast = document.getElementById(toastId);
+  const done = () => { toast.textContent = "Copied"; setTimeout(() => toast.textContent = "", 2000); };
+  const fallback = () => {
+    let ta = anchor.parentElement.parentElement.querySelector("textarea.fallback");
+    if (!ta) { ta = document.createElement("textarea"); ta.className = "fallback"; ta.readOnly = true; anchor.parentElement.after(ta); }
+    ta.value = text; ta.focus(); ta.select();
+    toast.textContent = "Press Ctrl+C (or long-press) to copy the selected text";
+  };
+  try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+}
+
+const STORE = "pqc-v1";
+function save() {
+  try {
+    const data = {};
+    document.querySelectorAll("input, select").forEach(el => { if (el.id) data[el.id] = el.type === "checkbox" ? el.checked : el.value; });
+    data.mode = mode; data.tab = document.querySelector('[role="tab"][aria-selected="true"]').dataset.tab;
+    localStorage.setItem(STORE, JSON.stringify(data));
+  } catch (e) {}
+}
+function restore() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORE) || "null");
+    if (!data) return;
+    Object.entries(data).forEach(([k, v]) => {
+      const el = document.getElementById(k);
+      if (!el) return;
+      if (el.type === "checkbox") el.checked = !!v; else el.value = v;
+    });
+    if (data.mode) setMode(data.mode, false);
+    if (data.tab) setTab(data.tab, false);
+  } catch (e) {}
+}
+
+function setMode(m, persist = true) {
+  mode = m;
+  document.querySelectorAll("[data-mode]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === m)));
+  calcSale(); if (persist) save();
+}
+function setTab(t, persist = true) {
+  document.querySelectorAll('[role="tab"]').forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
+  document.getElementById("view-sale").hidden = t !== "sale";
+  document.getElementById("view-rent").hidden = t !== "rent";
+  document.getElementById("view-stamp").hidden = t !== "stamp";
+  if (persist) save();
+}
+
+document.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+document.querySelectorAll('[role="tab"]').forEach(b => b.addEventListener("click", () => setTab(b.dataset.tab)));
+document.getElementById("saleForm").addEventListener("input", () => { calcSale(); save(); });
+document.getElementById("rentForm").addEventListener("input", () => { calcRent(); save(); });
+document.getElementById("stampForm").addEventListener("input", () => { calcStamp(); save(); });
+document.querySelectorAll("form").forEach(f => f.addEventListener("submit", e => e.preventDefault()));
+document.querySelectorAll("input.money").forEach(el => el.addEventListener("blur", () => {
+  const v = parseFloat(el.value.replace(/[,\s]/g, ""));
+  el.value = isFinite(v) ? v.toLocaleString("en-MY", { maximumFractionDigits: 2 }) : "";
+}));
+document.getElementById("copySale").addEventListener("click", e => copy(saleText.en, "saleToast", e.currentTarget));
+document.getElementById("copySaleZh").addEventListener("click", e => copy(saleText.zh, "saleToast", e.currentTarget));
+document.getElementById("copyRentEn").addEventListener("click", e => copy(rentText.en, "rentToast", e.currentTarget));
+document.getElementById("copyRentMs").addEventListener("click", e => copy(rentText.ms, "rentToast", e.currentTarget));
+document.getElementById("copyRentZh").addEventListener("click", e => copy(rentText.zh, "rentToast", e.currentTarget));
+document.getElementById("copyStampEn").addEventListener("click", e => copy(stampText.en, "stampToast", e.currentTarget));
+/* Download JPG: render the quotation slip to a canvas and offer it through the viewer's save prompt */
+let downloads = null;
+async function saveJpg(paperId, btn, toastId, name) {
+  const toast = document.getElementById(toastId);
+  btn.disabled = true; toast.textContent = "Preparing image…";
+  try {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const canvas = await html2canvas(document.getElementById(paperId), { scale: 2, backgroundColor: "#ffffff", logging: false });
+    const blob = await new Promise(r => canvas.toBlob(r, "image/jpeg", 0.92));
+    const d = new Date(), stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+    const client = name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-");
+    await downloads.save({ filename: `Quotation${client ? "-" + client : ""}-${stamp}.jpg`, data: blob });
+    toast.textContent = "Saved";
+  } catch (e) {
+    toast.textContent = e && e.code === "declined" ? "" : e && e.code === "rate_limited" ? "A save prompt is already open" : "Couldn't save the image. Try again.";
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { if (toast.textContent === "Saved") toast.textContent = ""; }, 2500);
+  }
+}
+document.getElementById("jpgSale").addEventListener("click", e => saveJpg("salePaper", e.currentTarget, "saleToast", val("s-client")));
+document.getElementById("jpgRent").addEventListener("click", e => saveJpg("rentPaper", e.currentTarget, "rentToast", val("r-client")));
+document.getElementById("jpgStamp").addEventListener("click", e => saveJpg("stampPaper", e.currentTarget, "stampToast", "Stamp Duty"));
+(async () => {
+  try { downloads = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch (e) { downloads = null; }
+  // On your own website (outside Claude) save the JPG with a normal browser download
+  if (!downloads && !window.claude) downloads = {
+    save: async ({ filename, data }) => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(data); a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      return { status: "saved" };
+    },
+  };
+  if (downloads && window.html2canvas) document.querySelectorAll("#jpgSale, #jpgRent, #jpgStamp").forEach(b => b.hidden = false);
+})();
+
+restore();
+calcSale();
+calcRent();
+calcStamp();
+</script>
+
+</body>
+</html>

@@ -299,7 +299,9 @@ textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); colo
         <label class="f">Maintenance fee &amp; sinking fund <small>per month, optional</small><div class="inp"><span>RM</span><input id="y-maint" class="money" inputmode="decimal" value=""></div></label>
         <label class="f">Assessment &amp; quit rent <small>per year, optional</small><div class="inp"><span>RM</span><input id="y-tax" class="money" inputmode="decimal" value=""></div></label>
         <label class="f">Insurance &amp; other expenses <small>per year, optional</small><div class="inp"><span>RM</span><input id="y-other" class="money" inputmode="decimal" value=""></div></label>
-        <p class="hint">Gross ROI = annual rental ÷ purchase price. Net ROI takes off the yearly expenses first.</p>
+        <label class="check"><input type="checkbox" id="y-agent" checked> Agent fee (½ month rental + 8% SST, yearly)</label>
+        <label class="f">Monthly loan installment <small>optional, for cash flow</small><div class="inp"><span>RM</span><input id="y-loan" class="money" inputmode="decimal" value=""></div></label>
+        <p class="hint">Gross ROI = annual rental ÷ purchase price. Net ROI takes off the yearly expenses first. Cash flow = net rental income − loan installment.</p>
       </div>
     </form>
 
@@ -655,11 +657,15 @@ let yieldText = { en: "", zh: "" };
 function calcYield() {
   const price = num("y-price"), rent = num("y-rent");
   const maint = num("y-maint") * 12, tax = num("y-tax"), other = num("y-other");
+  // Agent fee: half a month's rental + 8% SST, same as the Rental tab, once a year
+  const agent = document.getElementById("y-agent").checked ? rent / 2 * 1.08 : 0;
+  const loanYear = num("y-loan") * 12;
   const annual = rent * 12;
-  const expenses = maint + tax + other;
+  const expenses = maint + tax + other + agent;
   const net = annual - expenses;
   const pct = n => price > 0 ? fmt(n / price * 100) + "%" : "-";
   const gross = pct(annual), netY = pct(net);
+  const cashYear = net - loanYear, cashMonth = cashYear / 12;
 
   const lines = [
     { en: "Purchase Price", zh: "购买价", amount: price },
@@ -671,28 +677,29 @@ function calcYield() {
     if (maint) lines.push({ en: "Maintenance Fee & Sinking Fund", zh: "管理费及偿债基金", note: "(× 12 months)", noteZh: "(× 12个月)", amount: -maint });
     if (tax) lines.push({ en: "Assessment & Quit Rent", zh: "门牌税及地税", amount: -tax });
     if (other) lines.push({ en: "Insurance & Other Expenses", zh: "保险及其他开支", amount: -other });
+    if (agent) lines.push({ en: "Agent Fee", zh: "中介费", note: "(½ month rental + 8% SST)", noteZh: "(半个月租金 + 8% SST)", amount: -agent });
     lines.push({ en: "Net Annual Rental Income", zh: "每年净租金收入", amount: net });
   }
   lines.push({ sect: "ROI", sectZh: "投资回报率" });
   lines.push({ en: "Gross ROI", zh: "毛投资回报率", note: "(Annual rental ÷ purchase price)", noteZh: "(年租 ÷ 购买价)", text: gross });
+  if (expenses) lines.push({ en: "Net ROI", zh: "净投资回报率", note: "(Net annual income ÷ purchase price)", noteZh: "(每年净收入 ÷ 购买价)", text: netY });
+  lines.push({ sect: "Cash flow", sectZh: "现金流" });
+  if (loanYear) lines.push({ en: "Loan Installment", zh: "贷款月供", note: `(RM${fmt(loanYear / 12)} × 12 months)`, noteZh: `(RM${fmt(loanYear / 12)} × 12个月)`, amount: -loanYear });
+  lines.push({ en: "Yearly Cash Flow", zh: "每年现金流", amount: cashYear });
+  lines.push({ en: "Monthly Cash Flow", zh: "每月现金流", amount: cashMonth });
 
   document.getElementById("yieldMeta").textContent = today();
-  const mainLbl = expenses ? "Net ROI" : "Gross ROI";
-  const mainZh = expenses ? "净投资回报率" : "毛投资回报率";
-  const mainVal = expenses ? netY : gross;
-  const body = expenses ? lines : lines.slice(0, -2);
   document.getElementById("yieldBody").innerHTML =
-    body.map(l => l.sect ? `<div class="sect">${esc(l.sect)}</div>` : lineHTML(l, false)).join("") +
-    (expenses ? "" : `<div class="sect">ROI</div>`) +
-    `<div class="total"><div class="lbl">${mainLbl}</div><div class="amt">${esc(mainVal)}</div></div>` +
+    lines.slice(0, -1).map(l => l.sect ? `<div class="sect">${esc(l.sect)}</div>` : lineHTML(l, false)).join("") +
+    `<div class="total"><div class="lbl">Monthly Cash Flow</div><div class="amt${cashMonth < 0 ? " neg" : ""}">${rm(cashMonth)}</div></div>` +
     `<p class="foot">Estimate only. Actual returns depend on vacancy, repairs and other costs.</p>`;
 
   const txt = (l, zh) => l.sect ? `\n*${zh ? l.sectZh : l.sect}*` : (zh ? `${l.zh}${l.noteZh ? " " + l.noteZh : ""}：` : `${l.en}${l.note ? " " + l.note : ""}: `) + (l.text || rmText(l.amount));
   yieldText.en = ["*ROI*", `Date: ${today()}`, "",
-    ...body.map(l => txt(l, false)), expenses ? null : "\n*ROI*", `*${mainLbl}: ${mainVal}*`, "", "Estimate only. Actual returns depend on vacancy, repairs and other costs."].filter(x => x !== null).join("\n");
+    ...lines.map(l => txt(l, false)), "", "Estimate only. Actual returns depend on vacancy, repairs and other costs."].join("\n");
   const d = new Date();
   yieldText.zh = ["*投资回报率 (ROI)*", `日期：${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`, "",
-    ...body.map(l => txt(l, true)), expenses ? null : "\n*投资回报率*", `*${mainZh}：${mainVal}*`, "", "以上仅供参考，实际回报会受空置期、维修及其他开支影响。"].filter(x => x !== null).join("\n");
+    ...lines.map(l => txt(l, true)), "", "以上仅供参考，实际回报会受空置期、维修及其他开支影响。"].join("\n");
 }
 
 /* ---------- wiring ---------- */

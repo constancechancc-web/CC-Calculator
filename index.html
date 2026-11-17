@@ -256,10 +256,10 @@ textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); colo
         <label class="f">Client name <small>optional</small><div class="inp"><input id="g-client" type="text" placeholder="e.g. Mr Tan"></div></label>
         <label class="f">Property address <small>optional</small><div class="inp"><input id="g-prop" type="text" placeholder="e.g. 12, Jalan Molek 1/2, Taman Molek"></div></label>
         <label class="f">Seller (disposer)<div class="inp"><select id="g-cat">
-          <option value="p1">Part 1: Malaysian citizen / PR</option>
-          <option value="p2">Part 2: Malaysian company / trust</option>
-          <option value="p3">Part 3: Foreigner (individual)</option>
-          <option value="p3c">Part 3: Foreign company</option>
+          <option value="p1">Type 1: Malaysian citizen / PR</option>
+          <option value="p2">Type 2: Malaysian company / trust</option>
+          <option value="p3">Type 3: Foreigner (individual)</option>
+          <option value="p3c">Type 3: Foreign company</option>
         </select></div></label>
         <label class="f">Disposal year<div class="inp"><select id="g-year">
           <option value="1">1st year</option><option value="2">2nd year</option><option value="3">3rd year</option>
@@ -561,10 +561,10 @@ function calcStamp() {
 // RPGT rates (Schedule 5): disposal year 1 to 5, then 6th year and beyond
 const RPGT_RATES = { p1: [30, 30, 30, 20, 15, 0], p2: [30, 30, 30, 20, 15, 10], p3: [30, 30, 30, 30, 30, 10], p3c: [30, 30, 30, 30, 30, 10] };
 const RPGT_CAT = {
-  p1: { en: "Part 1 (Malaysian citizen / PR)", zh: "第一类（大马公民 / 永久居民）" },
-  p2: { en: "Part 2 (Malaysian company / trust)", zh: "第二类（大马公司 / 信托）" },
-  p3: { en: "Part 3 (Foreigner)", zh: "第三类（外国人）" },
-  p3c: { en: "Part 3 (Foreign company)", zh: "第三类（外国公司）" },
+  p1: { en: "Type 1 (Malaysian citizen / PR)", zh: "第一类（大马公民 / 永久居民）" },
+  p2: { en: "Type 2 (Malaysian company / trust)", zh: "第二类（大马公司 / 信托）" },
+  p3: { en: "Type 3 (Foreigner)", zh: "第三类（外国人）" },
+  p3c: { en: "Type 3 (Foreign company)", zh: "第三类（外国公司）" },
 };
 const ORD = ["1st", "2nd", "3rd", "4th", "5th", "6th"];
 let rpgtText = { en: "", zh: "" };

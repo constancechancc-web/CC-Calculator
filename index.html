@@ -227,6 +227,7 @@ textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); colo
         </div>
         <label class="check"><input type="checkbox" id="t-processing" checked> Processing fee (RM10)</label>
         <label class="check"><input type="checkbox" id="t-duplicate" checked> Duplicate copy (RM10)</label>
+        <label class="check"><input type="checkbox" id="t-cheesun"> Chee Sun cover page (RM60)</label>
         <p class="hint">From the Tenancy Stamp Duty table: annual rental ÷ 250, rounded up, × 1 for a 1-year tenancy or × 3 for 2 or 3 years.</p>
       </div>
     </form>
@@ -486,6 +487,7 @@ function calcStamp() {
   const extras = [];
   if (document.getElementById("t-processing").checked) extras.push({ en: "Processing Fee", amount: 10 });
   if (document.getElementById("t-duplicate").checked) extras.push({ en: "Duplicate Copy", amount: 10 });
+  if (document.getElementById("t-cheesun").checked) extras.push({ en: "Chee Sun Cover Page", amount: 60 });
   const total = duty + extras.reduce((s, l) => s + l.amount, 0);
 
   document.getElementById("stampMeta").textContent = today();

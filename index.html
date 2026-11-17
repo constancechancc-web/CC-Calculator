@@ -110,13 +110,14 @@ textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); colo
   <header class="top">
     <div>
       <h1>Property Calculator</h1>
-      <p class="sub">Sale, purchase, rental and RPGT calculations using the legal fee, valuation and tenancy tables from Calculation.xlsx.</p>
+      <p class="sub">Sale, purchase, rental, RPGT and rental yield calculations using the legal fee, valuation and tenancy tables from Calculation.xlsx.</p>
     </div>
     <div class="tabs" role="tablist" aria-label="Quotation type">
       <button role="tab" id="tab-sale" aria-selected="true" data-tab="sale">Sale / Purchase</button>
       <button role="tab" id="tab-rent" aria-selected="false" data-tab="rent">Rental</button>
       <button role="tab" id="tab-stamp" aria-selected="false" data-tab="stamp">Tenancy Stamp Duty</button>
       <button role="tab" id="tab-rpgt" aria-selected="false" data-tab="rpgt">RPGT</button>
+      <button role="tab" id="tab-yield" aria-selected="false" data-tab="yield">Rental Yield</button>
     </div>
   </header>
 
@@ -286,6 +287,37 @@ textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); colo
         <button class="btn" type="button" id="copyRpgtZh">Copy (Chinese)</button>
         <button class="btn ghost" type="button" id="jpgRpgt" hidden>Download JPG</button>
         <span class="toast" id="rpgtToast" role="status"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- RENTAL YIELD -->
+  <section id="view-yield" class="grid" hidden>
+    <form class="panel" id="yieldForm" autocomplete="off">
+      <h2>Rental yield</h2>
+      <div class="fieldset">
+        <label class="f">Client name <small>optional</small><div class="inp"><input id="y-client" type="text" placeholder="e.g. Mr Tan"></div></label>
+        <label class="f">Property address <small>optional</small><div class="inp"><input id="y-prop" type="text" placeholder="e.g. 12, Jalan Molek 1/2, Taman Molek"></div></label>
+        <label class="f">Purchase price<div class="inp"><span>RM</span><input id="y-price" class="money" inputmode="decimal" value="500,000"></div></label>
+        <label class="f">Monthly rental<div class="inp"><span>RM</span><input id="y-rent" class="money" inputmode="decimal" value="2,000"></div></label>
+        <label class="f">Maintenance fee &amp; sinking fund <small>per month, optional</small><div class="inp"><span>RM</span><input id="y-maint" class="money" inputmode="decimal" value=""></div></label>
+        <label class="f">Assessment &amp; quit rent <small>per year, optional</small><div class="inp"><span>RM</span><input id="y-tax" class="money" inputmode="decimal" value=""></div></label>
+        <label class="f">Insurance &amp; other expenses <small>per year, optional</small><div class="inp"><span>RM</span><input id="y-other" class="money" inputmode="decimal" value=""></div></label>
+        <p class="hint">Gross yield = annual rental ÷ purchase price. Net yield takes off the yearly expenses first.</p>
+      </div>
+    </form>
+
+    <div class="slip" aria-live="polite">
+      <div class="slip-paper" id="yieldPaper">
+        <div class="slip-band"></div>
+        <div class="slip-head"><div class="row"><h3>Rental Yield</h3><div class="meta" id="yieldMeta"></div></div><div class="addr" id="yieldAddr" hidden></div></div>
+        <div class="slip-body" id="yieldBody"></div>
+      </div>
+      <div class="actions">
+        <button class="btn" type="button" id="copyYieldEn">Copy (English)</button>
+        <button class="btn" type="button" id="copyYieldZh">Copy (Chinese)</button>
+        <button class="btn ghost" type="button" id="jpgYield" hidden>Download JPG</button>
+        <span class="toast" id="yieldToast" role="status"></span>
       </div>
     </div>
   </section>
@@ -624,6 +656,55 @@ function calcRpgt() {
     ...lines.map(l => txt(l, true)), "", `*应缴产业盈利税：${rmText(tax)}*`, gain <= 0 ? "没有应课税收益，无需缴付产业盈利税。" : null, "", footZh].filter(x => x !== null).join("\n");
 }
 
+/* ---------- RENTAL YIELD ---------- */
+let yieldText = { en: "", zh: "" };
+
+function calcYield() {
+  const price = num("y-price"), rent = num("y-rent");
+  const maint = num("y-maint") * 12, tax = num("y-tax"), other = num("y-other");
+  const annual = rent * 12;
+  const expenses = maint + tax + other;
+  const net = annual - expenses;
+  const pct = n => price > 0 ? fmt(n / price * 100) + "%" : "-";
+  const gross = pct(annual), netY = pct(net);
+
+  const lines = [
+    { en: "Purchase Price", zh: "购买价", amount: price },
+    { en: "Monthly Rental", zh: "月租", amount: rent },
+    { en: "Annual Rental", zh: "年租", note: "(Monthly rental × 12)", noteZh: "(月租 × 12)", amount: annual },
+  ];
+  if (expenses) {
+    lines.push({ sect: "Less: Annual expenses", sectZh: "减：每年开支" });
+    if (maint) lines.push({ en: "Maintenance Fee & Sinking Fund", zh: "管理费及偿债基金", note: "(× 12 months)", noteZh: "(× 12个月)", amount: -maint });
+    if (tax) lines.push({ en: "Assessment & Quit Rent", zh: "门牌税及地税", amount: -tax });
+    if (other) lines.push({ en: "Insurance & Other Expenses", zh: "保险及其他开支", amount: -other });
+    lines.push({ en: "Net Annual Rental Income", zh: "每年净租金收入", amount: net });
+  }
+  lines.push({ sect: "Yield", sectZh: "回报率" });
+  lines.push({ en: "Gross Rental Yield", zh: "毛租金回报率", note: "(Annual rental ÷ purchase price)", noteZh: "(年租 ÷ 购买价)", text: gross });
+
+  const client = val("y-client"), prop = val("y-prop");
+  document.getElementById("yieldMeta").textContent = [client, today()].filter(Boolean).join(" · ");
+  const addr = document.getElementById("yieldAddr");
+  addr.textContent = prop; addr.hidden = !prop;
+  const mainLbl = expenses ? "Net Rental Yield" : "Gross Rental Yield";
+  const mainZh = expenses ? "净租金回报率" : "毛租金回报率";
+  const mainVal = expenses ? netY : gross;
+  const body = expenses ? lines : lines.slice(0, -2);
+  document.getElementById("yieldBody").innerHTML =
+    body.map(l => l.sect ? `<div class="sect">${esc(l.sect)}</div>` : lineHTML(l, false)).join("") +
+    (expenses ? "" : `<div class="sect">Yield</div>`) +
+    `<div class="total"><div class="lbl">${mainLbl}</div><div class="amt">${esc(mainVal)}</div></div>` +
+    `<p class="foot">Estimate only. Actual returns depend on vacancy, repairs and other costs.</p>`;
+
+  const txt = (l, zh) => l.sect ? `\n*${zh ? l.sectZh : l.sect}*` : (zh ? `${l.zh}${l.noteZh ? " " + l.noteZh : ""}：` : `${l.en}${l.note ? " " + l.note : ""}: `) + (l.text || rmText(l.amount));
+  yieldText.en = ["*Rental Yield*", prop ? `Property Address: ${prop}` : null, client ? `Client: ${client}` : null, `Date: ${today()}`, "",
+    ...body.map(l => txt(l, false)), expenses ? null : "\n*Yield*", `*${mainLbl}: ${mainVal}*`, "", "Estimate only. Actual returns depend on vacancy, repairs and other costs."].filter(x => x !== null).join("\n");
+  const d = new Date();
+  yieldText.zh = ["*租金回报率*", prop ? `产业地址：${prop}` : null, client ? `客户：${client}` : null, `日期：${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`, "",
+    ...body.map(l => txt(l, true)), expenses ? null : "\n*回报率*", `*${mainZh}：${mainVal}*`, "", "以上仅供参考，实际回报会受空置期、维修及其他开支影响。"].filter(x => x !== null).join("\n");
+}
+
 /* ---------- wiring ---------- */
 function copy(text, toastId, anchor) {
   const toast = document.getElementById(toastId);
@@ -671,6 +752,7 @@ function setTab(t, persist = true) {
   document.getElementById("view-rent").hidden = t !== "rent";
   document.getElementById("view-stamp").hidden = t !== "stamp";
   document.getElementById("view-rpgt").hidden = t !== "rpgt";
+  document.getElementById("view-yield").hidden = t !== "yield";
   if (persist) save();
 }
 
@@ -680,6 +762,7 @@ document.getElementById("saleForm").addEventListener("input", () => { calcSale()
 document.getElementById("rentForm").addEventListener("input", () => { calcRent(); save(); });
 document.getElementById("stampForm").addEventListener("input", () => { calcStamp(); save(); });
 document.getElementById("rpgtForm").addEventListener("input", () => { calcRpgt(); save(); });
+document.getElementById("yieldForm").addEventListener("input", () => { calcYield(); save(); });
 document.querySelectorAll("form").forEach(f => f.addEventListener("submit", e => e.preventDefault()));
 document.querySelectorAll("input.money").forEach(el => el.addEventListener("blur", () => {
   const v = parseFloat(el.value.replace(/[,\s]/g, ""));
@@ -693,6 +776,8 @@ document.getElementById("copyRentZh").addEventListener("click", e => copy(rentTe
 document.getElementById("copyStampEn").addEventListener("click", e => copy(stampText.en, "stampToast", e.currentTarget));
 document.getElementById("copyRpgtEn").addEventListener("click", e => copy(rpgtText.en, "rpgtToast", e.currentTarget));
 document.getElementById("copyRpgtZh").addEventListener("click", e => copy(rpgtText.zh, "rpgtToast", e.currentTarget));
+document.getElementById("copyYieldEn").addEventListener("click", e => copy(yieldText.en, "yieldToast", e.currentTarget));
+document.getElementById("copyYieldZh").addEventListener("click", e => copy(yieldText.zh, "yieldToast", e.currentTarget));
 /* Download JPG: render the quotation slip to a canvas and offer it through the viewer's save prompt */
 let downloads = null;
 async function saveJpg(paperId, btn, toastId, name) {
@@ -716,6 +801,7 @@ async function saveJpg(paperId, btn, toastId, name) {
 document.getElementById("jpgSale").addEventListener("click", e => saveJpg("salePaper", e.currentTarget, "saleToast", val("s-client")));
 document.getElementById("jpgRent").addEventListener("click", e => saveJpg("rentPaper", e.currentTarget, "rentToast", val("r-client")));
 document.getElementById("jpgStamp").addEventListener("click", e => saveJpg("stampPaper", e.currentTarget, "stampToast", "Stamp Duty"));
+document.getElementById("jpgYield").addEventListener("click", e => saveJpg("yieldPaper", e.currentTarget, "yieldToast", "Rental Yield" + (val("y-client") ? " " + val("y-client") : "")));
 document.getElementById("jpgRpgt").addEventListener("click", e => saveJpg("rpgtPaper", e.currentTarget, "rpgtToast", "RPGT" + (val("g-client") ? " " + val("g-client") : "")));
 (async () => {
   try { downloads = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch (e) { downloads = null; }
@@ -729,7 +815,7 @@ document.getElementById("jpgRpgt").addEventListener("click", e => saveJpg("rpgtP
       return { status: "saved" };
     },
   };
-  if (downloads && window.html2canvas) document.querySelectorAll("#jpgSale, #jpgRent, #jpgStamp, #jpgRpgt").forEach(b => b.hidden = false);
+  if (downloads && window.html2canvas) document.querySelectorAll("#jpgSale, #jpgRent, #jpgStamp, #jpgRpgt, #jpgYield").forEach(b => b.hidden = false);
 })();
 
 restore();
@@ -737,6 +823,7 @@ calcSale();
 calcRent();
 calcStamp();
 calcRpgt();
+calcYield();
 </script>
 
 </body>

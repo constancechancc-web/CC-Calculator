@@ -110,12 +110,13 @@ textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); colo
   <header class="top">
     <div>
       <h1>Property Quotation Calculator</h1>
-      <p class="sub">Sale, purchase and rental quotations using the legal fee, valuation and tenancy tables from Calculation.xlsx.</p>
+      <p class="sub">Sale, purchase, rental and RPGT calculations using the legal fee, valuation and tenancy tables from Calculation.xlsx.</p>
     </div>
     <div class="tabs" role="tablist" aria-label="Quotation type">
       <button role="tab" id="tab-sale" aria-selected="true" data-tab="sale">Sale / Purchase</button>
       <button role="tab" id="tab-rent" aria-selected="false" data-tab="rent">Rental</button>
       <button role="tab" id="tab-stamp" aria-selected="false" data-tab="stamp">Tenancy Stamp Duty</button>
+      <button role="tab" id="tab-rpgt" aria-selected="false" data-tab="rpgt">RPGT</button>
     </div>
   </header>
 
@@ -243,6 +244,48 @@ textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); colo
         <button class="btn" type="button" id="copyStampEn">Copy (English)</button>
         <button class="btn ghost" type="button" id="jpgStamp" hidden>Download JPG</button>
         <span class="toast" id="stampToast" role="status"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- RPGT -->
+  <section id="view-rpgt" class="grid" hidden>
+    <form class="panel" id="rpgtForm" autocomplete="off">
+      <h2>Real property gains tax</h2>
+      <div class="fieldset">
+        <label class="f">Client name <small>optional</small><div class="inp"><input id="g-client" type="text" placeholder="e.g. Mr Tan"></div></label>
+        <label class="f">Property address <small>optional</small><div class="inp"><input id="g-prop" type="text" placeholder="e.g. 12, Jalan Molek 1/2, Taman Molek"></div></label>
+        <label class="f">Seller (disposer)<div class="inp"><select id="g-cat">
+          <option value="p1">Part 1: Malaysian citizen / PR</option>
+          <option value="p2">Part 2: Malaysian company / trust</option>
+          <option value="p3">Part 3: Foreigner (individual)</option>
+          <option value="p3c">Part 3: Foreign company</option>
+        </select></div></label>
+        <label class="f">Disposal year<div class="inp"><select id="g-year">
+          <option value="1">1st year</option><option value="2">2nd year</option><option value="3">3rd year</option>
+          <option value="4" selected>4th year</option><option value="5">5th year</option><option value="6">6th year and beyond</option>
+        </select></div></label>
+        <p class="hint">Holding period counts from the purchase SPA date to the sale SPA date.</p>
+        <label class="f">Disposal price<div class="inp"><span>RM</span><input id="g-sell" class="money" inputmode="decimal" value="600,000"></div></label>
+        <label class="f">Acquisition cost <small>purchase price + legal fees &amp; stamp duty when bought</small><div class="inp"><span>RM</span><input id="g-buy" class="money" inputmode="decimal" value="400,000"></div></label>
+        <label class="f">Enhancement &amp; title expenditure <small>renovation, defending title</small><div class="inp"><span>RM</span><input id="g-enh" class="money" inputmode="decimal" value=""></div></label>
+        <label class="f">Incidental costs of disposal <small>legal fee, agent fee, stamp duty</small><div class="inp"><span>RM</span><input id="g-inc" class="money" inputmode="decimal" value="50,000"></div></label>
+        <label class="f">Compensation / insurance / forfeited deposit received <small>optional</small><div class="inp"><span>RM</span><input id="g-comp" class="money" inputmode="decimal" value=""></div></label>
+        <label class="check" id="g-home-wrap"><input type="checkbox" id="g-home"> Once-in-a-lifetime residence exemption</label>
+      </div>
+    </form>
+
+    <div class="slip" aria-live="polite">
+      <div class="slip-paper" id="rpgtPaper">
+        <div class="slip-band"></div>
+        <div class="slip-head"><div class="row"><h3>RPGT Calculation</h3><div class="meta" id="rpgtMeta"></div></div><div class="addr" id="rpgtAddr" hidden></div></div>
+        <div class="slip-body" id="rpgtBody"></div>
+      </div>
+      <div class="actions">
+        <button class="btn" type="button" id="copyRpgtEn">Copy (English)</button>
+        <button class="btn" type="button" id="copyRpgtZh">Copy (Chinese)</button>
+        <button class="btn ghost" type="button" id="jpgRpgt" hidden>Download JPG</button>
+        <span class="toast" id="rpgtToast" role="status"></span>
       </div>
     </div>
   </section>
@@ -514,6 +557,73 @@ function calcStamp() {
     `*Total (RM): ${rmText(total)}*`].filter(x => x !== null).join("\n");
 }
 
+/* ---------- RPGT ---------- */
+// RPGT rates (Schedule 5): disposal year 1 to 5, then 6th year and beyond
+const RPGT_RATES = { p1: [30, 30, 30, 20, 15, 0], p2: [30, 30, 30, 20, 15, 10], p3: [30, 30, 30, 30, 30, 10], p3c: [30, 30, 30, 30, 30, 10] };
+const RPGT_CAT = {
+  p1: { en: "Part 1 (Malaysian citizen / PR)", zh: "第一类（大马公民 / 永久居民）" },
+  p2: { en: "Part 2 (Malaysian company / trust)", zh: "第二类（大马公司 / 信托）" },
+  p3: { en: "Part 3 (Foreigner)", zh: "第三类（外国人）" },
+  p3c: { en: "Part 3 (Foreign company)", zh: "第三类（外国公司）" },
+};
+const ORD = ["1st", "2nd", "3rd", "4th", "5th", "6th"];
+let rpgtText = { en: "", zh: "" };
+
+function calcRpgt() {
+  const cat = val("g-cat"), year = parseInt(val("g-year"), 10);
+  const sell = num("g-sell"), buy = num("g-buy"), enh = num("g-enh"), inc = num("g-inc"), comp = num("g-comp");
+  const individual = cat === "p1" || cat === "p3";
+  document.getElementById("g-home-wrap").hidden = cat !== "p1";
+  const home = cat === "p1" && document.getElementById("g-home").checked;
+
+  // Chargeable gain = disposal price - (acquisition + allowable expenses + incidental costs - compensation/insurance/deposit)
+  const gain = sell - (buy + enh + inc - comp);
+  const pos = Math.max(0, gain);
+  let exemption = 0, exNote, exNoteZh;
+  if (home) { exemption = pos; exNote = "(Once-in-a-lifetime residence exemption)"; exNoteZh = "(一生一次住宅豁免)"; }
+  else if (individual) { exemption = Math.min(pos, Math.max(10000, pos * 0.1)); exNote = "(RM10,000 or 10% of gain, whichever higher)"; exNoteZh = "(RM10,000 或收益的 10%，取较高者)"; }
+  const taxable = pos - exemption;
+  const rate = RPGT_RATES[cat][year - 1];
+  const tax = Math.round(taxable * rate) / 100;
+  const yearEn = year === 6 ? "6th year and beyond" : ORD[year - 1] + " year";
+  const yearZh = year === 6 ? "第6年及以后" : `第${year}年`;
+
+  const lines = [
+    { en: "Disposal Price", zh: "出售价", amount: sell },
+    { sect: "Less: Allowable expenses", sectZh: "减：可扣除开支" },
+    { en: "Acquisition Cost", zh: "购买成本", note: "(incl. incidental costs of acquisition)", noteZh: "(包括购买时的律师费、印花税)", amount: -buy },
+  ];
+  if (enh) lines.push({ en: "Enhancement & Title Expenditure", zh: "提升产业价值及产权开支", amount: -enh });
+  if (inc) lines.push({ en: "Incidental Costs of Disposal", zh: "出售费用", note: "(legal fee, agent fee, stamp duty)", noteZh: "(律师费、中介费、印花税)", amount: -inc });
+  if (comp) lines.push({ en: "Compensation / Insurance / Deposit Received", zh: "已收赔偿 / 保险 / 没收订金", amount: comp });
+  lines.push({ sect: "Gain", sectZh: "收益" });
+  lines.push({ en: "Chargeable Gain", zh: "应课税收益", amount: gain });
+  if (gain > 0) {
+    if (exemption) lines.push({ en: "Less: Exemption (Schedule 4)", zh: "减：豁免（附表4）", note: exNote, noteZh: exNoteZh, amount: -exemption });
+    lines.push({ en: "Total Chargeable Gain", zh: "净应课税收益", amount: taxable });
+  }
+  lines.push({ en: "RPGT Rate", zh: "产业盈利税率", note: `(${yearEn}, ${RPGT_CAT[cat].en})`, noteZh: `(${yearZh}，${RPGT_CAT[cat].zh})`, text: rate + "%" });
+
+  const client = val("g-client"), prop = val("g-prop");
+  document.getElementById("rpgtMeta").textContent = [client, today()].filter(Boolean).join(" · ");
+  const addr = document.getElementById("rpgtAddr");
+  addr.textContent = prop; addr.hidden = !prop;
+  const foot = "Estimate only, based on the RPGT rates and Schedule 4 exemptions. Please confirm with the lawyer or tax agent.";
+  const footZh = "以上仅供参考，根据产业盈利税率及附表4豁免计算，请向律师或税务代理确认。";
+  document.getElementById("rpgtBody").innerHTML =
+    lines.map(l => l.sect ? `<div class="sect">${esc(l.sect)}</div>` : lineHTML(l, false)).join("") +
+    `<div class="total"><div class="lbl">RPGT Payable</div><div class="amt">${rm(tax)}</div></div>` +
+    (gain <= 0 ? `<div class="warnbox">No chargeable gain, so no RPGT is payable.</div>` : "") +
+    `<p class="foot">${esc(foot)}</p>`;
+
+  const txt = (l, zh) => l.sect ? `\n*${zh ? l.sectZh : l.sect}*` : (zh ? `${l.zh}${l.noteZh ? " " + l.noteZh : ""}：` : `${l.en}${l.note ? " " + l.note : ""}: `) + (l.text || rmText(l.amount));
+  rpgtText.en = ["*RPGT Calculation*", prop ? `Property Address: ${prop}` : null, client ? `Client: ${client}` : null, `Date: ${today()}`, "",
+    ...lines.map(l => txt(l, false)), "", `*RPGT Payable: ${rmText(tax)}*`, gain <= 0 ? "No chargeable gain, so no RPGT is payable." : null, "", foot].filter(x => x !== null).join("\n");
+  const d = new Date();
+  rpgtText.zh = ["*产业盈利税 (RPGT) 计算*", prop ? `产业地址：${prop}` : null, client ? `客户：${client}` : null, `日期：${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`, "",
+    ...lines.map(l => txt(l, true)), "", `*应缴产业盈利税：${rmText(tax)}*`, gain <= 0 ? "没有应课税收益，无需缴付产业盈利税。" : null, "", footZh].filter(x => x !== null).join("\n");
+}
+
 /* ---------- wiring ---------- */
 function copy(text, toastId, anchor) {
   const toast = document.getElementById(toastId);
@@ -560,6 +670,7 @@ function setTab(t, persist = true) {
   document.getElementById("view-sale").hidden = t !== "sale";
   document.getElementById("view-rent").hidden = t !== "rent";
   document.getElementById("view-stamp").hidden = t !== "stamp";
+  document.getElementById("view-rpgt").hidden = t !== "rpgt";
   if (persist) save();
 }
 
@@ -568,6 +679,7 @@ document.querySelectorAll('[role="tab"]').forEach(b => b.addEventListener("click
 document.getElementById("saleForm").addEventListener("input", () => { calcSale(); save(); });
 document.getElementById("rentForm").addEventListener("input", () => { calcRent(); save(); });
 document.getElementById("stampForm").addEventListener("input", () => { calcStamp(); save(); });
+document.getElementById("rpgtForm").addEventListener("input", () => { calcRpgt(); save(); });
 document.querySelectorAll("form").forEach(f => f.addEventListener("submit", e => e.preventDefault()));
 document.querySelectorAll("input.money").forEach(el => el.addEventListener("blur", () => {
   const v = parseFloat(el.value.replace(/[,\s]/g, ""));
@@ -579,6 +691,8 @@ document.getElementById("copyRentEn").addEventListener("click", e => copy(rentTe
 document.getElementById("copyRentMs").addEventListener("click", e => copy(rentText.ms, "rentToast", e.currentTarget));
 document.getElementById("copyRentZh").addEventListener("click", e => copy(rentText.zh, "rentToast", e.currentTarget));
 document.getElementById("copyStampEn").addEventListener("click", e => copy(stampText.en, "stampToast", e.currentTarget));
+document.getElementById("copyRpgtEn").addEventListener("click", e => copy(rpgtText.en, "rpgtToast", e.currentTarget));
+document.getElementById("copyRpgtZh").addEventListener("click", e => copy(rpgtText.zh, "rpgtToast", e.currentTarget));
 /* Download JPG: render the quotation slip to a canvas and offer it through the viewer's save prompt */
 let downloads = null;
 async function saveJpg(paperId, btn, toastId, name) {
@@ -602,6 +716,7 @@ async function saveJpg(paperId, btn, toastId, name) {
 document.getElementById("jpgSale").addEventListener("click", e => saveJpg("salePaper", e.currentTarget, "saleToast", val("s-client")));
 document.getElementById("jpgRent").addEventListener("click", e => saveJpg("rentPaper", e.currentTarget, "rentToast", val("r-client")));
 document.getElementById("jpgStamp").addEventListener("click", e => saveJpg("stampPaper", e.currentTarget, "stampToast", "Stamp Duty"));
+document.getElementById("jpgRpgt").addEventListener("click", e => saveJpg("rpgtPaper", e.currentTarget, "rpgtToast", "RPGT" + (val("g-client") ? " " + val("g-client") : "")));
 (async () => {
   try { downloads = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch (e) { downloads = null; }
   // On your own website (outside Claude) save the JPG with a normal browser download
@@ -614,13 +729,14 @@ document.getElementById("jpgStamp").addEventListener("click", e => saveJpg("stam
       return { status: "saved" };
     },
   };
-  if (downloads && window.html2canvas) document.querySelectorAll("#jpgSale, #jpgRent, #jpgStamp").forEach(b => b.hidden = false);
+  if (downloads && window.html2canvas) document.querySelectorAll("#jpgSale, #jpgRent, #jpgStamp, #jpgRpgt").forEach(b => b.hidden = false);
 })();
 
 restore();
 calcSale();
 calcRent();
 calcStamp();
+calcRpgt();
 </script>
 
 </body>

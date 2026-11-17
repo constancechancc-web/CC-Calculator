@@ -254,8 +254,6 @@ textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); colo
     <form class="panel" id="rpgtForm" autocomplete="off">
       <h2>Real property gains tax</h2>
       <div class="fieldset">
-        <label class="f">Client name <small>optional</small><div class="inp"><input id="g-client" type="text" placeholder="e.g. Mr Tan"></div></label>
-        <label class="f">Property address <small>optional</small><div class="inp"><input id="g-prop" type="text" placeholder="e.g. 12, Jalan Molek 1/2, Taman Molek"></div></label>
         <label class="f">Seller (disposer)<div class="inp"><select id="g-cat">
           <option value="p1">Type 1: Malaysian citizen / PR</option>
           <option value="p2">Type 2: Malaysian company / trust</option>
@@ -279,7 +277,7 @@ textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); colo
     <div class="slip" aria-live="polite">
       <div class="slip-paper" id="rpgtPaper">
         <div class="slip-band"></div>
-        <div class="slip-head"><div class="row"><h3>RPGT Calculation</h3><div class="meta" id="rpgtMeta"></div></div><div class="addr" id="rpgtAddr" hidden></div></div>
+        <div class="slip-head"><div class="row"><h3>RPGT Calculation</h3><div class="meta" id="rpgtMeta"></div></div></div>
         <div class="slip-body" id="rpgtBody"></div>
       </div>
       <div class="actions">
@@ -296,8 +294,6 @@ textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); colo
     <form class="panel" id="yieldForm" autocomplete="off">
       <h2>ROI</h2>
       <div class="fieldset">
-        <label class="f">Client name <small>optional</small><div class="inp"><input id="y-client" type="text" placeholder="e.g. Mr Tan"></div></label>
-        <label class="f">Property address <small>optional</small><div class="inp"><input id="y-prop" type="text" placeholder="e.g. 12, Jalan Molek 1/2, Taman Molek"></div></label>
         <label class="f">Purchase price<div class="inp"><span>RM</span><input id="y-price" class="money" inputmode="decimal" value="500,000"></div></label>
         <label class="f">Monthly rental<div class="inp"><span>RM</span><input id="y-rent" class="money" inputmode="decimal" value="2,000"></div></label>
         <label class="f">Maintenance fee &amp; sinking fund <small>per month, optional</small><div class="inp"><span>RM</span><input id="y-maint" class="money" inputmode="decimal" value=""></div></label>
@@ -310,7 +306,7 @@ textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); colo
     <div class="slip" aria-live="polite">
       <div class="slip-paper" id="yieldPaper">
         <div class="slip-band"></div>
-        <div class="slip-head"><div class="row"><h3>ROI</h3><div class="meta" id="yieldMeta"></div></div><div class="addr" id="yieldAddr" hidden></div></div>
+        <div class="slip-head"><div class="row"><h3>ROI</h3><div class="meta" id="yieldMeta"></div></div></div>
         <div class="slip-body" id="yieldBody"></div>
       </div>
       <div class="actions">
@@ -636,10 +632,7 @@ function calcRpgt() {
   }
   lines.push({ en: "RPGT Rate", zh: "产业盈利税率", note: `(${yearEn}, ${RPGT_CAT[cat].en})`, noteZh: `(${yearZh}，${RPGT_CAT[cat].zh})`, text: rate + "%" });
 
-  const client = val("g-client"), prop = val("g-prop");
-  document.getElementById("rpgtMeta").textContent = [client, today()].filter(Boolean).join(" · ");
-  const addr = document.getElementById("rpgtAddr");
-  addr.textContent = prop; addr.hidden = !prop;
+  document.getElementById("rpgtMeta").textContent = today();
   const foot = "Estimate only, based on the RPGT rates and Schedule 4 exemptions. Please confirm with the lawyer or tax agent.";
   const footZh = "以上仅供参考，根据产业盈利税率及附表4豁免计算，请向律师或税务代理确认。";
   document.getElementById("rpgtBody").innerHTML =
@@ -649,10 +642,10 @@ function calcRpgt() {
     `<p class="foot">${esc(foot)}</p>`;
 
   const txt = (l, zh) => l.sect ? `\n*${zh ? l.sectZh : l.sect}*` : (zh ? `${l.zh}${l.noteZh ? " " + l.noteZh : ""}：` : `${l.en}${l.note ? " " + l.note : ""}: `) + (l.text || rmText(l.amount));
-  rpgtText.en = ["*RPGT Calculation*", prop ? `Property Address: ${prop}` : null, client ? `Client: ${client}` : null, `Date: ${today()}`, "",
+  rpgtText.en = ["*RPGT Calculation*", `Date: ${today()}`, "",
     ...lines.map(l => txt(l, false)), "", `*RPGT Payable: ${rmText(tax)}*`, gain <= 0 ? "No chargeable gain, so no RPGT is payable." : null, "", foot].filter(x => x !== null).join("\n");
   const d = new Date();
-  rpgtText.zh = ["*产业盈利税 (RPGT) 计算*", prop ? `产业地址：${prop}` : null, client ? `客户：${client}` : null, `日期：${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`, "",
+  rpgtText.zh = ["*产业盈利税 (RPGT) 计算*", `日期：${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`, "",
     ...lines.map(l => txt(l, true)), "", `*应缴产业盈利税：${rmText(tax)}*`, gain <= 0 ? "没有应课税收益，无需缴付产业盈利税。" : null, "", footZh].filter(x => x !== null).join("\n");
 }
 
@@ -683,10 +676,7 @@ function calcYield() {
   lines.push({ sect: "ROI", sectZh: "投资回报率" });
   lines.push({ en: "Gross ROI", zh: "毛投资回报率", note: "(Annual rental ÷ purchase price)", noteZh: "(年租 ÷ 购买价)", text: gross });
 
-  const client = val("y-client"), prop = val("y-prop");
-  document.getElementById("yieldMeta").textContent = [client, today()].filter(Boolean).join(" · ");
-  const addr = document.getElementById("yieldAddr");
-  addr.textContent = prop; addr.hidden = !prop;
+  document.getElementById("yieldMeta").textContent = today();
   const mainLbl = expenses ? "Net ROI" : "Gross ROI";
   const mainZh = expenses ? "净投资回报率" : "毛投资回报率";
   const mainVal = expenses ? netY : gross;
@@ -698,10 +688,10 @@ function calcYield() {
     `<p class="foot">Estimate only. Actual returns depend on vacancy, repairs and other costs.</p>`;
 
   const txt = (l, zh) => l.sect ? `\n*${zh ? l.sectZh : l.sect}*` : (zh ? `${l.zh}${l.noteZh ? " " + l.noteZh : ""}：` : `${l.en}${l.note ? " " + l.note : ""}: `) + (l.text || rmText(l.amount));
-  yieldText.en = ["*ROI*", prop ? `Property Address: ${prop}` : null, client ? `Client: ${client}` : null, `Date: ${today()}`, "",
+  yieldText.en = ["*ROI*", `Date: ${today()}`, "",
     ...body.map(l => txt(l, false)), expenses ? null : "\n*ROI*", `*${mainLbl}: ${mainVal}*`, "", "Estimate only. Actual returns depend on vacancy, repairs and other costs."].filter(x => x !== null).join("\n");
   const d = new Date();
-  yieldText.zh = ["*投资回报率 (ROI)*", prop ? `产业地址：${prop}` : null, client ? `客户：${client}` : null, `日期：${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`, "",
+  yieldText.zh = ["*投资回报率 (ROI)*", `日期：${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`, "",
     ...body.map(l => txt(l, true)), expenses ? null : "\n*投资回报率*", `*${mainZh}：${mainVal}*`, "", "以上仅供参考，实际回报会受空置期、维修及其他开支影响。"].filter(x => x !== null).join("\n");
 }
 
@@ -801,8 +791,8 @@ async function saveJpg(paperId, btn, toastId, name) {
 document.getElementById("jpgSale").addEventListener("click", e => saveJpg("salePaper", e.currentTarget, "saleToast", val("s-client")));
 document.getElementById("jpgRent").addEventListener("click", e => saveJpg("rentPaper", e.currentTarget, "rentToast", val("r-client")));
 document.getElementById("jpgStamp").addEventListener("click", e => saveJpg("stampPaper", e.currentTarget, "stampToast", "Stamp Duty"));
-document.getElementById("jpgYield").addEventListener("click", e => saveJpg("yieldPaper", e.currentTarget, "yieldToast", "ROI" + (val("y-client") ? " " + val("y-client") : "")));
-document.getElementById("jpgRpgt").addEventListener("click", e => saveJpg("rpgtPaper", e.currentTarget, "rpgtToast", "RPGT" + (val("g-client") ? " " + val("g-client") : "")));
+document.getElementById("jpgYield").addEventListener("click", e => saveJpg("yieldPaper", e.currentTarget, "yieldToast", "ROI"));
+document.getElementById("jpgRpgt").addEventListener("click", e => saveJpg("rpgtPaper", e.currentTarget, "rpgtToast", "RPGT"));
 (async () => {
   try { downloads = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch (e) { downloads = null; }
   // On your own website (outside Claude) save the JPG with a normal browser download

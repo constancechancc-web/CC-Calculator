@@ -538,6 +538,7 @@ function calcRent() {
   lines.push({ en: `Tenancy Agreement (${years} Year${years > 1 ? "s" : ""})`, ms: `Agreement (${years} Tahun)`, zh: `合同费（${years}年）`, amount: tenancyFee(rent, years) });
   if (document.getElementById("r-agency-on").checked) lines.push({ en: "Agency Fee", ms: "Agency Fee", zh: "中介费", amount: rent / 2 * 1.08 });
   const total = lines.reduce((s, l) => s + l.amount, 0);
+  const noUtility = type === "2c";
 
   const client = val("r-client"), prop = val("r-prop");
   const pkg = { "2m": "Deposit 2+1+0.5", "1m": "Deposit 1+1+0.5", "111": "Deposit 1+1+1", "2c": "Deposit 2+1 (No Utility Deposit)" }[type];
@@ -549,15 +550,14 @@ function calcRent() {
     `<div class="sect">Amount to be prepared</div>` +
     lines.map(l => lineHTML({ en: l.en, cn: l.ms, amount: l.amount }, true)).join("") +
     `<div class="total"><div class="lbl">Total (RM)</div><div class="amt">${rm(total)}</div></div>` +
-    `<p class="foot">**TNB &amp; SAJ to be applied under Tenant's name</p>`;
+    (noUtility ? `<p class="foot">**TNB &amp; SAJ to be applied under Tenant's name</p>` : "");
 
-  const head = (prop ? `\nProperty Address: ${prop}` : "") + (client ? `\nClient: ${client}` : "");
-  rentText.en = [`*Rental Quotation*${head}`, `Monthly Rental: ${rmText(rent)}`, "", "*Amount to be prepared*",
-    ...lines.map(l => `${l.en} - ${rmText(l.amount)}`), `*Total - ${rmText(total)}*`, "", "**TNB & SAJ to be applied under Tenant's name"].join("\n");
-  rentText.ms = [`*Sebut Harga Sewa*${head.replace("Property Address:", "Alamat Hartanah:").replace("Client:", "Pelanggan:")}`, `Sewa Bulanan: ${rmText(rent)}`, "", "*Jumlah yang perlu disediakan*",
-    ...lines.map(l => `${l.ms} - ${rmText(l.amount)}`), `*Total - ${rmText(total)}*`, "", "**TNB & SAJ account apply atas nama tenant"].join("\n");
-  rentText.zh = ["*租屋报价单*", prop ? `产业地址：${prop}` : null, client ? `客户：${client}` : null, `月租：${rmText(rent)}`, "", "*需准备的金额*",
-    ...lines.map(l => `${l.zh} - ${rmText(l.amount)}`), `*总额 - ${rmText(total)}*`, "", "**TNB 电费及 SAJ 水费户口须以租客名义申请"].filter(x => x !== null).join("\n");
+  // Copy text: monthly rental, the items and the total only; the TNB & SAJ note only for the no-utility-deposit package
+  const copyText = (rentLbl, key, note, totalLbl = "Total") => [`${rentLbl}${rmText(rent)}`, "", ...lines.map(l => `${l[key]} - ${rmText(l.amount)}`), `*${totalLbl} - ${rmText(total)}*`]
+    .concat(noUtility ? ["", note] : []).join("\n");
+  rentText.en = copyText("Monthly Rental: ", "en", "**TNB & SAJ to be applied under Tenant's name");
+  rentText.ms = copyText("Sewa Bulanan: ", "ms", "**TNB & SAJ account apply atas nama tenant");
+  rentText.zh = copyText("月租：", "zh", "**TNB 电费及 SAJ 水费户口须以租客名义申请", "总额");
 }
 
 /* ---------- TENANCY STAMP DUTY ---------- */

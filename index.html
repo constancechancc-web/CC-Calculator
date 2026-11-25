@@ -323,6 +323,22 @@ textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); colo
         <label class="check"><input type="checkbox" id="y-agent" checked> Agent fee (½ month rental + 8% SST, yearly)</label>
         <p class="hint">Cash-on-Cash ROI = yearly cash flow ÷ total cash you put in. Break-even rental is the monthly rental where cash flow is zero.</p>
       </div>
+      <h2>Sale projection</h2>
+      <div class="fieldset">
+        <div class="row2">
+          <label class="f">Appreciation <small>per year</small><div class="inp"><input id="y-growth" inputmode="decimal" value="3"><span>%</span></div></label>
+          <label class="f">Holding period<div class="inp"><input id="y-hold" inputmode="decimal" value="5"><span>yrs</span></div></label>
+        </div>
+        <label class="f">Selling costs <small>agent &amp; legal fee, % of sale price</small><div class="inp"><input id="y-sellcost" inputmode="decimal" value="3"><span>%</span></div></label>
+        <label class="f">Owner (for RPGT)<div class="inp"><select id="y-cat">
+          <option value="p1">Type 1: Malaysian citizen</option>
+          <option value="p1pr">Type 1: Permanent resident (PR)</option>
+          <option value="p2">Type 2: Malaysian company / trust</option>
+          <option value="p3">Type 3: Foreigner (individual)</option>
+          <option value="p3c">Type 3: Foreign company</option>
+        </select></div></label>
+        <p class="hint">Sold after the holding period, so 5 years held = disposal in the 6th year. RPGT uses the same rules as the RPGT tab (no once-in-a-lifetime exemption).</p>
+      </div>
     </form>
 
     <div class="slip" aria-live="polite">
@@ -618,21 +634,14 @@ const RPGT_CAT = {
   p3c: { en: "Type 3 (Foreign company)", zh: "第三类（外国公司）" },
 };
 const ORD = ["1st", "2nd", "3rd", "4th", "5th", "6th"];
-let rpgtText = { en: "", zh: "" };
 
-function calcRpgt() {
-  const cat = val("g-cat"), year = parseInt(val("g-year"), 10);
-  const sell = num("g-sell"), buy = num("g-buy"), enh = num("g-enh"), inc = num("g-inc"), comp = num("g-comp");
-  // Who qualifies: residence exemption = citizen & PR; RM10,000 / 10% = all individuals (not companies);
-  // small chargeable asset (price RM200,000 or less, 6th year or after) = citizen only
+// Shared RPGT rules (RPGT tab and the ROI sale projection). year: 1 to 6 (6 = 6th year and beyond)
+// Who qualifies: residence exemption = citizen & PR; RM10,000 / 10% = all individuals (not companies);
+// small chargeable asset (price RM200,000 or less, 6th year or after) = citizen only
+function rpgtCalc(cat, year, sell, cost, home) {
   const individual = cat === "p1" || cat === "p1pr" || cat === "p3";
-  const residentType = cat === "p1" || cat === "p1pr";
-  document.getElementById("g-home-wrap").hidden = !residentType;
-  const home = residentType && document.getElementById("g-home").checked;
   const small = cat === "p1" && year === 6 && sell > 0 && sell <= 200000;
-
-  // Chargeable gain = disposal price - (acquisition + allowable expenses + incidental costs - compensation/insurance/deposit)
-  const gain = sell - (buy + enh + inc - comp);
+  const gain = sell - cost;
   const pos = Math.max(0, gain);
   let exemption = 0, exNote, exNoteZh;
   if (home) { exemption = pos; exNote = "(Once-in-a-lifetime residence exemption)"; exNoteZh = "(一生一次住宅豁免)"; }
@@ -641,6 +650,20 @@ function calcRpgt() {
   const taxable = pos - exemption;
   const rate = RPGT_RATES[cat][year - 1];
   const tax = Math.round(taxable * rate) / 100;
+  return { gain, exemption, exNote, exNoteZh, taxable, rate, tax };
+}
+let rpgtText = { en: "", zh: "" };
+
+function calcRpgt() {
+  const cat = val("g-cat"), year = parseInt(val("g-year"), 10);
+  const sell = num("g-sell"), buy = num("g-buy"), enh = num("g-enh"), inc = num("g-inc"), comp = num("g-comp");
+  // Who qualifies: residence exemption = citizen & PR; RM10,000 / 10% = all individuals (not companies);
+  // small chargeable asset (price RM200,000 or less, 6th year or after) = citizen only
+  const residentType = cat === "p1" || cat === "p1pr";
+  document.getElementById("g-home-wrap").hidden = !residentType;
+  const home = residentType && document.getElementById("g-home").checked;
+  // Chargeable gain = disposal price - (acquisition + allowable expenses + incidental costs - compensation/insurance/deposit)
+  const { gain, exemption, exNote, exNoteZh, taxable, rate, tax } = rpgtCalc(cat, year, sell, buy + enh + inc - comp, home);
   const yearEn = year === 6 ? "6th year and beyond" : ORD[year - 1] + " year";
   const yearZh = year === 6 ? "第6年及以后" : `第${year}年`;
 
@@ -755,7 +778,41 @@ function calcYield() {
   lines.push({ sect: "ROI", sectZh: "投资回报率" });
   lines.push({ en: "Gross ROI", zh: "毛投资回报率", note: "(Annual rental ÷ purchase price)", noteZh: "(年租 ÷ 购买价)", text: pctOf(annual, price) });
   lines.push({ en: "Net ROI", zh: "净投资回报率", note: "(Net annual income ÷ purchase price)", noteZh: "(每年净收入 ÷ 购买价)", text: pctOf(net, price) });
-  const cocLine = { en: "Cash-on-Cash ROI", zh: "现金回报率", note: "(Yearly cash flow ÷ total cash invested)", noteZh: "(每年现金流 ÷ 总投入现金)", text: coc };
+  lines.push({ en: "Cash-on-Cash ROI", zh: "现金回报率", note: "(Yearly cash flow ÷ total cash invested)", noteZh: "(每年现金流 ÷ 总投入现金)", text: coc });
+
+  // Sale projection: price grows by appreciation % a year; sold after the holding period
+  const growth = num("y-growth"), hold = Math.max(1, Math.round(num("y-hold"))), sellPct = num("y-sellcost"), cat = val("y-cat");
+  const salePrice = price * Math.pow(1 + growth / 100, hold);
+  const sellCost = salePrice * sellPct / 100;
+  const dispYear = Math.min(6, hold + 1);
+  // RPGT cost base: purchase price + SPA legal fee & stamp duty + renovation + selling costs
+  const rp = rpgtCalc(cat, dispYear, salePrice, price + (spaFee || 0) + reno + sellCost, false);
+  // Loan balance left after the holding period
+  const r = rate / 100 / 12, k = Math.min(hold * 12, Math.round(tenure * 12));
+  const balance = !loan ? 0 : Math.max(0, r ? loan * Math.pow(1 + r, k) - inst * (Math.pow(1 + r, k) - 1) / r : loan - inst * k);
+  const proceeds = salePrice - sellCost - rp.tax - balance;
+  const cfTotal = cashYear * hold;
+  const profit = proceeds + cfTotal - cashIn;
+  const totalRet = pctOf(profit, cashIn);
+  const annualRet = cashIn > 0 && 1 + profit / cashIn > 0 ? fmt((Math.pow(1 + profit / cashIn, 1 / hold) - 1) * 100) + "%" : "-";
+  const yrs = `${hold} year${hold > 1 ? "s" : ""}`;
+  const dispEn = dispYear === 6 ? "6th year and beyond" : ORD[dispYear - 1] + " year";
+  const dispZh = dispYear === 6 ? "第6年及以后" : `第${dispYear}年`;
+
+  lines.push({ sect: `Sale after ${yrs}`, sectZh: `${hold}年后出售` });
+  lines.push({ en: "Projected Sale Price", zh: "预计售价", note: `(${+growth.toFixed(2)}% a year for ${yrs})`, noteZh: `(每年增值 ${+growth.toFixed(2)}%，${hold}年)`, amount: salePrice, pm: true });
+  lines.push({ en: "Less: Selling Costs", zh: "减：出售费用", note: `(${+sellPct.toFixed(2)}%, agent & legal fee)`, noteZh: `(${+sellPct.toFixed(2)}%，中介费及律师费)`, amount: -sellCost });
+  lines.push({ en: "Less: RPGT", zh: "减：产业盈利税", note: `(${rp.rate}% on RM${fmt(rp.taxable)}, ${dispEn}, ${RPGT_CAT[cat].en})`, noteZh: `(${rp.rate}%，应课税 RM${fmt(rp.taxable)}，${dispZh}，${RPGT_CAT[cat].zh})`, amount: -rp.tax });
+  if (loan) lines.push({ en: "Less: Outstanding Loan", zh: "减：剩余贷款", note: `(after ${yrs})`, noteZh: `(${hold}年后)`, amount: -balance });
+  lines.push({ en: "Net Sale Proceeds", zh: "出售净所得", amount: proceeds, pm: true });
+
+  lines.push({ sect: "Total profit", sectZh: "总盈利" });
+  lines.push({ en: "Net Sale Proceeds", zh: "出售净所得", amount: proceeds, pm: true });
+  lines.push({ en: "Total Cash Flow", zh: "总现金流", note: `(Yearly cash flow × ${hold})`, noteZh: `(每年现金流 × ${hold})`, amount: cfTotal });
+  lines.push({ en: "Less: Total Cash Invested", zh: "减：总投入现金", amount: -cashIn });
+  lines.push({ en: "Total Return on Cash", zh: "总回报率", note: "(Total profit ÷ total cash invested)", noteZh: "(总盈利 ÷ 总投入现金)", text: totalRet });
+  lines.push({ en: "Annualised Return", zh: "年化回报率", text: annualRet });
+  const profitLine = { en: `Total Profit (${yrs})`, zh: `总盈利（${hold}年）`, amount: profit, pm: true };
 
   const warn = spaFee === null || loanFee === null
     ? "Price or loan is above RM2,000,000, the highest amount in the legal fee table. Get the legal fee from the lawyer." : "";
@@ -766,16 +823,16 @@ function calcYield() {
   document.getElementById("yieldMeta").textContent = today();
   document.getElementById("yieldBody").innerHTML =
     lines.map(l => l.sect ? `<div class="sect">${esc(l.sect)}</div>` : lineHTML(l, false)).join("") +
-    `<div class="total"><div class="lbl">Cash-on-Cash ROI<span class="cn" style="display:block;font-size:12.5px;font-weight:500">Yearly cash flow ÷ total cash invested</span></div><div class="amt${cashYear < 0 ? " neg" : ""}">${esc(coc)}</div></div>` +
+    `<div class="total"><div class="lbl">${esc(profitLine.en)}</div><div class="amt${profit < 0 ? " neg" : ""}">${rm(profit)}<span class="pm">+/-</span></div></div>` +
     (warn ? `<div class="warnbox">${esc(warn)}</div>` : "") +
     `<p class="foot">${esc(foot)}</p>`;
 
   const val2 = (l, zh) => l.na ? (zh ? "请向律师确认" : l.na) : l.text || (rmText(l.amount) + (l.pm ? " +/-" : ""));
   const txt = (l, zh) => l.sect ? `\n*${zh ? l.sectZh : l.sect}*` : (zh ? `${l.zh}${l.noteZh ? " " + l.noteZh : ""}：` : `${l.en}${l.note ? " " + l.note : ""}: `) + val2(l, zh);
-  yieldText.en = ["*ROI*", `Date: ${today()}`, "", ...lines.map(l => txt(l, false)), `*${txt(cocLine, false)}*`,
+  yieldText.en = ["*ROI*", `Date: ${today()}`, "", ...lines.map(l => txt(l, false)), `*${txt(profitLine, false)}*`,
     warn ? "Note: " + warn : null, "", foot].filter(x => x !== null).join("\n");
   const d = new Date();
-  yieldText.zh = ["*投资回报率 (ROI)*", `日期：${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`, "", ...lines.map(l => txt(l, true)), `*${txt(cocLine, true)}*`,
+  yieldText.zh = ["*投资回报率 (ROI)*", `日期：${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`, "", ...lines.map(l => txt(l, true)), `*${txt(profitLine, true)}*`,
     warnZh ? "注：" + warnZh : null, "", footZh].filter(x => x !== null).join("\n");
 }
 

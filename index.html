@@ -255,7 +255,8 @@ textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); colo
       <h2>Real property gains tax</h2>
       <div class="fieldset">
         <label class="f">Seller (disposer)<div class="inp"><select id="g-cat">
-          <option value="p1">Type 1: Malaysian citizen / PR</option>
+          <option value="p1">Type 1: Malaysian citizen</option>
+          <option value="p1pr">Type 1: Permanent resident (PR)</option>
           <option value="p2">Type 2: Malaysian company / trust</option>
           <option value="p3">Type 3: Foreigner (individual)</option>
           <option value="p3c">Type 3: Foreign company</option>
@@ -592,9 +593,10 @@ function calcStamp() {
 
 /* ---------- RPGT ---------- */
 // RPGT rates (Schedule 5): disposal year 1 to 5, then 6th year and beyond
-const RPGT_RATES = { p1: [30, 30, 30, 20, 15, 0], p2: [30, 30, 30, 20, 15, 10], p3: [30, 30, 30, 30, 30, 10], p3c: [30, 30, 30, 30, 30, 10] };
+const RPGT_RATES = { p1: [30, 30, 30, 20, 15, 0], p1pr: [30, 30, 30, 20, 15, 0], p2: [30, 30, 30, 20, 15, 10], p3: [30, 30, 30, 30, 30, 10], p3c: [30, 30, 30, 30, 30, 10] };
 const RPGT_CAT = {
-  p1: { en: "Type 1 (Malaysian citizen / PR)", zh: "第一类（大马公民 / 永久居民）" },
+  p1: { en: "Type 1 (Malaysian citizen)", zh: "第一类（大马公民）" },
+  p1pr: { en: "Type 1 (Permanent resident)", zh: "第一类（永久居民）" },
   p2: { en: "Type 2 (Malaysian company / trust)", zh: "第二类（大马公司 / 信托）" },
   p3: { en: "Type 3 (Foreigner)", zh: "第三类（外国人）" },
   p3c: { en: "Type 3 (Foreign company)", zh: "第三类（外国公司）" },
@@ -605,15 +607,20 @@ let rpgtText = { en: "", zh: "" };
 function calcRpgt() {
   const cat = val("g-cat"), year = parseInt(val("g-year"), 10);
   const sell = num("g-sell"), buy = num("g-buy"), enh = num("g-enh"), inc = num("g-inc"), comp = num("g-comp");
-  const individual = cat === "p1" || cat === "p3";
-  document.getElementById("g-home-wrap").hidden = cat !== "p1";
-  const home = cat === "p1" && document.getElementById("g-home").checked;
+  // Who qualifies: residence exemption = citizen & PR; RM10,000 / 10% = all individuals (not companies);
+  // small chargeable asset (price RM200,000 or less, 6th year or after) = citizen only
+  const individual = cat === "p1" || cat === "p1pr" || cat === "p3";
+  const residentType = cat === "p1" || cat === "p1pr";
+  document.getElementById("g-home-wrap").hidden = !residentType;
+  const home = residentType && document.getElementById("g-home").checked;
+  const small = cat === "p1" && year === 6 && sell > 0 && sell <= 200000;
 
   // Chargeable gain = disposal price - (acquisition + allowable expenses + incidental costs - compensation/insurance/deposit)
   const gain = sell - (buy + enh + inc - comp);
   const pos = Math.max(0, gain);
   let exemption = 0, exNote, exNoteZh;
   if (home) { exemption = pos; exNote = "(Once-in-a-lifetime residence exemption)"; exNoteZh = "(一生一次住宅豁免)"; }
+  else if (small) { exemption = pos; exNote = "(Small chargeable asset: RM200,000 or less, 6th year or after)"; exNoteZh = "(小额资产豁免：RM200,000 或以下，第6年或以后出售)"; }
   else if (individual) { exemption = Math.min(pos, Math.max(10000, pos * 0.1)); exNote = "(RM10,000 or 10% of gain, whichever higher)"; exNoteZh = "(RM10,000 或收益的 10%，取较高者)"; }
   const taxable = pos - exemption;
   const rate = RPGT_RATES[cat][year - 1];

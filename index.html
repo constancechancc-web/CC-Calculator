@@ -110,14 +110,14 @@ textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); colo
   <header class="top">
     <div>
       <h1>Property Calculator</h1>
-      <p class="sub">Sale, purchase, rental, RPGT and ROI calculations using the legal fee, valuation and tenancy tables from Calculation.xlsx.</p>
+      <p class="sub">Sale, purchase, rental, RPGT and investment calculations using the legal fee, valuation and tenancy tables from Calculation.xlsx.</p>
     </div>
     <div class="tabs" role="tablist" aria-label="Quotation type">
       <button role="tab" id="tab-sale" aria-selected="true" data-tab="sale">Sale / Purchase</button>
       <button role="tab" id="tab-rent" aria-selected="false" data-tab="rent">Rental</button>
       <button role="tab" id="tab-stamp" aria-selected="false" data-tab="stamp">Tenancy Stamp Duty</button>
       <button role="tab" id="tab-rpgt" aria-selected="false" data-tab="rpgt">RPGT</button>
-      <button role="tab" id="tab-yield" aria-selected="false" data-tab="yield">ROI</button>
+      <button role="tab" id="tab-yield" aria-selected="false" data-tab="yield">Investment</button>
     </div>
   </header>
 
@@ -293,7 +293,7 @@ textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); colo
   <!-- RENTAL YIELD -->
   <section id="view-yield" class="grid" hidden>
     <form class="panel" id="yieldForm" autocomplete="off">
-      <h2>ROI</h2>
+      <h2>Investment</h2>
       <div class="fieldset">
         <label class="f">Purchase price<div class="inp"><span>RM</span><input id="y-price" class="money" inputmode="decimal" value="500,000"></div></label>
         <label class="f">Monthly rental<div class="inp"><span>RM</span><input id="y-rent" class="money" inputmode="decimal" value="2,000"></div></label>
@@ -344,7 +344,7 @@ textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); colo
     <div class="slip" aria-live="polite">
       <div class="slip-paper" id="yieldPaper">
         <div class="slip-band"></div>
-        <div class="slip-head"><div class="row"><h3>ROI</h3><div class="meta" id="yieldMeta"></div></div></div>
+        <div class="slip-head"><div class="row"><h3>Investment Analysis</h3><div class="meta" id="yieldMeta"></div></div></div>
         <div class="slip-body" id="yieldBody"></div>
       </div>
       <div class="actions">
@@ -829,10 +829,10 @@ function calcYield() {
 
   const val2 = (l, zh) => l.na ? (zh ? "请向律师确认" : l.na) : l.text || (rmText(l.amount) + (l.pm ? " +/-" : ""));
   const txt = (l, zh) => l.sect ? `\n*${zh ? l.sectZh : l.sect}*` : (zh ? `${l.zh}${l.noteZh ? " " + l.noteZh : ""}：` : `${l.en}${l.note ? " " + l.note : ""}: `) + val2(l, zh);
-  yieldText.en = ["*ROI*", `Date: ${today()}`, "", ...lines.map(l => txt(l, false)), `*${txt(profitLine, false)}*`,
+  yieldText.en = ["*Investment Analysis*", `Date: ${today()}`, "", ...lines.map(l => txt(l, false)), `*${txt(profitLine, false)}*`,
     warn ? "Note: " + warn : null, "", foot].filter(x => x !== null).join("\n");
   const d = new Date();
-  yieldText.zh = ["*投资回报率 (ROI)*", `日期：${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`, "", ...lines.map(l => txt(l, true)), `*${txt(profitLine, true)}*`,
+  yieldText.zh = ["*投资分析*", `日期：${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`, "", ...lines.map(l => txt(l, true)), `*${txt(profitLine, true)}*`,
     warnZh ? "注：" + warnZh : null, "", footZh].filter(x => x !== null).join("\n");
 }
 
@@ -932,7 +932,7 @@ async function saveJpg(paperId, btn, toastId, name) {
 document.getElementById("jpgSale").addEventListener("click", e => saveJpg("salePaper", e.currentTarget, "saleToast", val("s-client")));
 document.getElementById("jpgRent").addEventListener("click", e => saveJpg("rentPaper", e.currentTarget, "rentToast", val("r-client")));
 document.getElementById("jpgStamp").addEventListener("click", e => saveJpg("stampPaper", e.currentTarget, "stampToast", "Stamp Duty"));
-document.getElementById("jpgYield").addEventListener("click", e => saveJpg("yieldPaper", e.currentTarget, "yieldToast", "ROI"));
+document.getElementById("jpgYield").addEventListener("click", e => saveJpg("yieldPaper", e.currentTarget, "yieldToast", "Investment"));
 document.getElementById("jpgRpgt").addEventListener("click", e => saveJpg("rpgtPaper", e.currentTarget, "rpgtToast", "RPGT"));
 (async () => {
   try { downloads = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch (e) { downloads = null; }

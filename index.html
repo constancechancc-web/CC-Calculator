@@ -261,11 +261,15 @@ textarea.fallback { width: 100%; min-height: 160px; font: 13px var(--font); colo
           <option value="p3">Type 3: Foreigner (individual)</option>
           <option value="p3c">Type 3: Foreign company</option>
         </select></div></label>
-        <label class="f">Disposal year<div class="inp"><select id="g-year">
+        <div class="row2">
+          <label class="f">Acquisition date<div class="inp"><input id="g-buydate" type="date"></div></label>
+          <label class="f">Disposal date<div class="inp"><input id="g-selldate" type="date"></div></label>
+        </div>
+        <label class="f">Disposal year <small id="g-year-note">pick one, or enter both dates</small><div class="inp"><select id="g-year">
           <option value="1">1st year</option><option value="2">2nd year</option><option value="3">3rd year</option>
           <option value="4" selected>4th year</option><option value="5">5th year</option><option value="6">6th year and beyond</option>
         </select></div></label>
-        <p class="hint">Holding period counts from the purchase SPA date to the sale SPA date.</p>
+        <p class="hint">Use the purchase SPA date and the sale SPA date. With both dates entered, the disposal year is worked out for you.</p>
         <label class="f">Disposal price<div class="inp"><span>RM</span><input id="g-sell" class="money" inputmode="decimal" value="600,000"></div></label>
         <label class="f">Acquisition cost <small>purchase price + legal fees &amp; stamp duty when bought</small><div class="inp"><span>RM</span><input id="g-buy" class="money" inputmode="decimal" value="400,000"></div></label>
         <label class="f">Enhancement &amp; title expenditure <small>renovation, defending title</small><div class="inp"><span>RM</span><input id="g-enh" class="money" inputmode="decimal" value=""></div></label>
@@ -635,6 +639,17 @@ const RPGT_CAT = {
 };
 const ORD = ["1st", "2nd", "3rd", "4th", "5th", "6th"];
 
+// Full years and months held between two yyyy-mm-dd dates; null if missing or disposal is before acquisition
+function heldPeriod(a, b) {
+  if (!a || !b) return null;
+  const [y1, m1, d1] = a.split("-").map(Number), [y2, m2, d2] = b.split("-").map(Number);
+  if (!y1 || !y2) return null;
+  const months = (y2 - y1) * 12 + (m2 - m1) - (d2 < d1 ? 1 : 0);
+  if (months < 0 || b < a) return null;
+  return { years: Math.floor(months / 12), months: months % 12 };
+}
+const fmtDate = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); };
+
 // Shared RPGT rules (RPGT tab and the ROI sale projection). year: 1 to 6 (6 = 6th year and beyond)
 // Who qualifies: residence exemption = citizen & PR; RM10,000 / 10% = all individuals (not companies);
 // small chargeable asset (price RM200,000 or less, 6th year or after) = citizen only
@@ -655,7 +670,15 @@ function rpgtCalc(cat, year, sell, cost, home) {
 let rpgtText = { en: "", zh: "" };
 
 function calcRpgt() {
-  const cat = val("g-cat"), year = parseInt(val("g-year"), 10);
+  const cat = val("g-cat");
+  const buyDate = val("g-buydate"), sellDate = val("g-selldate");
+  const held = heldPeriod(buyDate, sellDate);
+  const badDates = !!(buyDate && sellDate && !held);
+  const yearSel = document.getElementById("g-year");
+  if (held) yearSel.value = String(Math.min(6, held.years + 1));
+  yearSel.disabled = !!held;
+  document.getElementById("g-year-note").textContent = held ? "worked out from the dates" : "pick one, or enter both dates";
+  const year = parseInt(yearSel.value, 10);
   const sell = num("g-sell"), buy = num("g-buy"), enh = num("g-enh"), inc = num("g-inc"), comp = num("g-comp");
   // Who qualifies: residence exemption = citizen & PR; RM10,000 / 10% = all individuals (not companies);
   // small chargeable asset (price RM200,000 or less, 6th year or after) = citizen only
@@ -667,11 +690,17 @@ function calcRpgt() {
   const yearEn = year === 6 ? "6th year and beyond" : ORD[year - 1] + " year";
   const yearZh = year === 6 ? "第6年及以后" : `第${year}年`;
 
-  const lines = [
+  const lines = [];
+  if (held) {
+    lines.push({ en: "Acquisition Date", zh: "购买日期", text: fmtDate(buyDate) });
+    lines.push({ en: "Disposal Date", zh: "出售日期", text: fmtDate(sellDate) });
+    lines.push({ en: "Holding Period", zh: "持有期", text: `${held.years} yr ${held.months} mth`, textZh: `${held.years}年${held.months}个月` });
+  }
+  lines.push(
     { en: "Disposal Price", zh: "出售价", amount: sell },
     { sect: "Less: Allowable expenses", sectZh: "减：可扣除开支" },
     { en: "Acquisition Cost", zh: "购买成本", note: "(incl. incidental costs of acquisition)", noteZh: "(包括购买时的律师费、印花税)", amount: -buy },
-  ];
+  );
   if (enh) lines.push({ en: "Enhancement & Title Expenditure", zh: "提升产业价值及产权开支", amount: -enh });
   if (inc) lines.push({ en: "Incidental Costs of Disposal", zh: "出售费用", note: "(legal fee, agent fee, stamp duty)", noteZh: "(律师费、中介费、印花税)", amount: -inc });
   if (comp) lines.push({ en: "Compensation / Insurance / Deposit Received", zh: "已收赔偿 / 保险 / 没收订金", amount: comp });
@@ -683,21 +712,39 @@ function calcRpgt() {
   }
   lines.push({ en: "RPGT Rate", zh: "产业盈利税率", note: `(${yearEn}, ${RPGT_CAT[cat].en})`, noteZh: `(${yearZh}，${RPGT_CAT[cat].zh})`, text: rate + "%" });
 
+  // After tax, and the retention sum the buyer's lawyer holds back for LHDN
+  const after = [];
+  after.push({ sect: "After tax", sectZh: "扣税后" });
+  after.push({ en: "Net Gain After RPGT", zh: "扣税后净收益", note: "(Chargeable gain − RPGT)", noteZh: "(应课税收益 − 产业盈利税)", amount: gain - tax });
+  const retPct = cat === "p3" ? 7 : cat === "p2" || cat === "p3c" ? 5 : 3;
+  const retention = sell * retPct / 100;
+  const diff = retention - tax;
+  after.push({ sect: "Retention sum", sectZh: "保留金" });
+  after.push({ en: "Retention Sum", zh: "保留金", note: `(${retPct}% of disposal price, held by buyer's lawyer)`, noteZh: `(出售价的 ${retPct}%，由买方律师保留)`, amount: retention });
+  after.push({ en: "Less: RPGT Payable", zh: "减：应缴产业盈利税", amount: -tax });
+  after.push(diff >= 0 ? { en: "Refundable to Seller", zh: "可退还给卖方", amount: diff } : { en: "Balance RPGT to Pay", zh: "需补缴的产业盈利税", amount: -diff });
+
   document.getElementById("rpgtMeta").textContent = today();
+  const warn = badDates ? "The disposal date is before the acquisition date. Check the dates." : "";
+  const warnZh = badDates ? "出售日期早于购买日期，请检查日期。" : "";
   const foot = "Estimate only, based on the RPGT rates and Schedule 4 exemptions. Please confirm with the lawyer or tax agent.";
   const footZh = "以上仅供参考，根据产业盈利税率及附表4豁免计算，请向律师或税务代理确认。";
   document.getElementById("rpgtBody").innerHTML =
     lines.map(l => l.sect ? `<div class="sect">${esc(l.sect)}</div>` : lineHTML(l, false)).join("") +
     `<div class="total"><div class="lbl">RPGT Payable</div><div class="amt">${rm(tax)}</div></div>` +
     (gain <= 0 ? `<div class="warnbox">No chargeable gain, so no RPGT is payable.</div>` : "") +
+    after.map(l => l.sect ? `<div class="sect">${esc(l.sect)}</div>` : lineHTML(l, false)).join("") +
+    (warn ? `<div class="warnbox">${esc(warn)}</div>` : "") +
     `<p class="foot">${esc(foot)}</p>`;
 
-  const txt = (l, zh) => l.sect ? `\n*${zh ? l.sectZh : l.sect}*` : (zh ? `${l.zh}${l.noteZh ? " " + l.noteZh : ""}：` : `${l.en}${l.note ? " " + l.note : ""}: `) + (l.text || rmText(l.amount));
+  const txt = (l, zh) => l.sect ? `\n*${zh ? l.sectZh : l.sect}*` : (zh ? `${l.zh}${l.noteZh ? " " + l.noteZh : ""}：` : `${l.en}${l.note ? " " + l.note : ""}: `) + ((zh && l.textZh) || l.text || rmText(l.amount));
   rpgtText.en = ["*RPGT Calculation*", `Date: ${today()}`, "",
-    ...lines.map(l => txt(l, false)), "", `*RPGT Payable: ${rmText(tax)}*`, gain <= 0 ? "No chargeable gain, so no RPGT is payable." : null, "", foot].filter(x => x !== null).join("\n");
+    ...lines.map(l => txt(l, false)), "", `*RPGT Payable: ${rmText(tax)}*`, gain <= 0 ? "No chargeable gain, so no RPGT is payable." : null,
+    ...after.map(l => txt(l, false)), warn ? "Note: " + warn : null, "", foot].filter(x => x !== null).join("\n");
   const d = new Date();
   rpgtText.zh = ["*产业盈利税 (RPGT) 计算*", `日期：${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`, "",
-    ...lines.map(l => txt(l, true)), "", `*应缴产业盈利税：${rmText(tax)}*`, gain <= 0 ? "没有应课税收益，无需缴付产业盈利税。" : null, "", footZh].filter(x => x !== null).join("\n");
+    ...lines.map(l => txt(l, true)), "", `*应缴产业盈利税：${rmText(tax)}*`, gain <= 0 ? "没有应课税收益，无需缴付产业盈利税。" : null,
+    ...after.map(l => txt(l, true)), warnZh ? "注：" + warnZh : null, "", footZh].filter(x => x !== null).join("\n");
 }
 
 /* ---------- RENTAL YIELD ---------- */

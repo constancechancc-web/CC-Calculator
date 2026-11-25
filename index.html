@@ -716,7 +716,7 @@ function calcRpgt() {
   const after = [];
   after.push({ sect: "After tax", sectZh: "扣税后" });
   after.push({ en: "Net Gain After RPGT", zh: "扣税后净收益", note: "(Chargeable gain − RPGT)", noteZh: "(应课税收益 − 产业盈利税)", amount: gain - tax });
-  const retPct = cat === "p3" ? 7 : cat === "p2" || cat === "p3c" ? 5 : 3;
+  const retPct = cat === "p3" || cat === "p3c" ? 7 : cat === "p2" ? 5 : 3;
   const retention = sell * retPct / 100;
   const diff = retention - tax;
   after.push({ sect: "Retention sum", sectZh: "保留金" });
